@@ -12,9 +12,9 @@ object AluFn extends Enumeration {
 }
 
 class AluInput(coreConfig: CoreConfig) extends Bundle {
-  val fn = Input(UInt(AluFn.bits.W))
-  val op1 = Input(UInt(coreConfig.XLEN.W))
-  val op2 = Input(UInt(coreConfig.XLEN.W))
+  val fn = Output(UInt(AluFn.bits.W))
+  val op1 = Output(UInt(coreConfig.XLEN.W))
+  val op2 = Output(UInt(coreConfig.XLEN.W))
 }
 
 class Alu(coreConfig: CoreConfig) extends Module {
@@ -23,7 +23,7 @@ class Alu(coreConfig: CoreConfig) extends Module {
     case 32 => 5; case 64 => 6
   }
   val io = IO(new Bundle {
-    val in = new AluInput(coreConfig)
+    val in = Flipped(new AluInput(coreConfig))
     val out = Output(UInt(coreConfig.XLEN.W))
   })
 
@@ -41,7 +41,7 @@ class Alu(coreConfig: CoreConfig) extends Module {
   val sltu = ZeroExt(ltu.asUInt, coreConfig.XLEN)
   val xor = op1 ^ op2
   val srl = op1 >> op2(shift_op2_len - 1, 0)
-  val sra = op1.asSInt >> op2(shift_op2_len - 1, 0)
+  val sra = (op1.asSInt >> op2(shift_op2_len - 1, 0)).asUInt
   val or = op1 | op2
   val and = op1 & op2
 
@@ -77,10 +77,11 @@ class EX(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
       val valid = Input(Bool())
+      val predicted_pc = Input(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
       }
-      val alu = new AluInput(coreConfig)
+      val alu = Flipped(new AluInput(coreConfig))
     }
     val out = new Bundle {
       val valid = Output(Bool())
@@ -94,7 +95,7 @@ class EX(coreConfig: CoreConfig) extends Module {
   val alu = Module(new Alu(coreConfig))
   alu.io.in <> io.in.alu
 
-  io.out.valid := RegNext(io.in.valid)
-  io.out.write_back.rd := RegNext(io.in.write_back.rd)
-  io.out.write_back.data := RegNext(alu.io.out)
+  io.out.valid := RegNext(io.in.valid, false.B)
+  io.out.write_back.rd := RegNext(io.in.write_back.rd, 0.U)
+  io.out.write_back.data := RegNext(alu.io.out, 0.U)
 }

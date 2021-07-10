@@ -10,13 +10,7 @@ import chisel3.tester._
 import org.scalatest.FreeSpec
 import chisel3.util.experimental.loadMemoryFromFile
 
-class MemoryTest extends FreeSpec with ChiselScalatestTester {
-  def Byte2Hex(b: Byte): String = {
-    val hex = "0123456789ABCDEF"
-    val high = ((b >> 4) & 0x0f)
-    val low = (b & 0x0f)
-    s"${hex(high)}${hex(low)}"
-  }
+object MemoryTest {
   def prepareMemoryFile(hexfile: String, target_path: String, bytes: Int) = {
     val (basename, extname) = {
       val tmp = target_path.split("\\.(?=[^\\.]+$)")
@@ -39,17 +33,21 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
 
     var idx = 0
     Iterator.continually(bsrc.read()).takeWhile(_ != -1).foreach { ch =>
-      target(idx).write(Byte2Hex(ch.toByte).getBytes())
-      target(idx).write('\n')
+      val hex = "0123456789ABCDEF"
+      val high = ((ch >> 4) & 0x0f).toByte
+      val low = (ch & 0x0f).toByte
+      target(idx).write(s"${hex(high)}${hex(low)}\n".getBytes())
       idx += 1
       if (idx == bytes)
         idx = 0
     }
   }
+}
 
+class MemoryTest extends FreeSpec with ChiselScalatestTester {
   "Read and write with mask" in {
     FileUtils.makeDirectory("test_run_dir/temp")
-    prepareMemoryFile("/mem1.txt", "test_run_dir/temp/mem1.txt", 4)
+    MemoryTest.prepareMemoryFile("/mem1.txt", "test_run_dir/temp/mem1.txt", 4)
     test(
       new Memory(
         addrWidth = 8,

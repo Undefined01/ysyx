@@ -25,7 +25,7 @@ class Decoder(coreConfig: CoreConfig) extends Module {
     val out = new Bundle {
       val valid = Output(Bool())
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
-      val alu = Flipped(new AluInput(coreConfig))
+      val alu = new AluInput(coreConfig)
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
       }
@@ -88,7 +88,7 @@ class ID(coreConfig: CoreConfig) extends Module {
     val out = new Bundle {
       val valid = Output(Bool())
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
-      val alu = Flipped(new AluInput(coreConfig))
+      val alu = new AluInput(coreConfig)
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
       }
@@ -98,6 +98,11 @@ class ID(coreConfig: CoreConfig) extends Module {
   val decoder = Module(new Decoder(coreConfig))
   decoder.io.in <> io.in
   decoder.io.reg_io <> io.reg_io
-  val out = RegNext(decoder.io.out)
-  io.out <> out
+
+  io.out.valid := RegNext(decoder.io.out.valid, false.B)
+  io.out.predicted_pc := RegNext(decoder.io.out.predicted_pc)
+  io.out.alu := RegNext(decoder.io.out.alu)
+  io.out.write_back := RegNext(decoder.io.out.write_back)
+  // val out = RegNext(decoder.io.out)
+  // io.out := out
 }

@@ -21,13 +21,14 @@ class IF(coreConfig: CoreConfig) extends Module {
   })
 
   io.if_io.en := true.B
-  io.if_io.addr := io.in.pc
+  io.if_io.addr := io.in.pc >> 3
+  val instr = Mux(
+    io.in.pc(2),
+    Cat(io.if_io.data(3), io.if_io.data(2), io.if_io.data(1), io.if_io.data(0)),
+    Cat(io.if_io.data(7), io.if_io.data(6), io.if_io.data(5), io.if_io.data(4))
+  )
 
-  val valid = RegInit(false.B)
-  val pc = RegNext(io.in.pc)
-
-  valid := true.B
-  io.out.valid := valid
-  io.out.pc := pc
-  io.out.instr := io.if_io.data
+  io.out.valid := RegNext(true.B, false.B)
+  io.out.pc := RegNext(io.in.pc)
+  io.out.instr := instr
 }

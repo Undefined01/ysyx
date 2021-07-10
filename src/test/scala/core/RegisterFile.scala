@@ -6,17 +6,17 @@ import org.scalatest.FreeSpec
 
 class RegisterFileTest extends FreeSpec with ChiselScalatestTester {
   "Registers can keep values" in {
-    test(new RegisterFile(RV64ICoreConfig)) { c =>
+    test(new RegisterFile(new RV64ICoreConfig)) { c =>
       def readExpect(addr: Int, value: Int, port: Int = 0): Unit = {
-        c.io.raddr(port).poke(addr.U)
-        c.io.rdata(port).expect(value.U)
+        c.io.rport.raddr(port).poke(addr.U)
+        c.io.rport.rdata(port).expect(value.U)
       }
       def write(addr: Int, value: Int): Unit = {
-        c.io.wen.poke(true.B)
-        c.io.wdata.poke(value.U)
-        c.io.waddr.poke(addr.U)
+        c.io.wport.wen.poke(true.B)
+        c.io.wport.wdata.poke(value.U)
+        c.io.wport.waddr.poke(addr.U)
         c.clock.step()
-        c.io.wen.poke(false.B)
+        c.io.wport.wen.poke(false.B)
       }
 
       // everything should be 0 on init

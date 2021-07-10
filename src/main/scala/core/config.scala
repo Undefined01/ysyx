@@ -9,12 +9,12 @@ trait CoreConfig {
   val RegAddrWidth = 5
   val InstrLen = 32
   val InitialPC = 0x0
-  val MemoryFile = "test.hex"
+  val MemoryFile = ""
   val MemorySize = 40 * 1024
 }
 
-object RV64ICoreConfig extends CoreConfig
+class RV64ICoreConfig extends CoreConfig
 
-object RV32ICoreConfig extends CoreConfig {
+class RV32ICoreConfig extends CoreConfig {
   override val XLEN = 32
 }
