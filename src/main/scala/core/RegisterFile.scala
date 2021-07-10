@@ -3,32 +3,21 @@ package core
 import chisel3._
 import chisel3.util._
 
-class RegisterFile(readPorts: Int, width: Int) extends Module {
+class RegisterFile(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val wen = Input(Bool())
-    val waddr = Input(UInt(5.W))
-    val wdata = Input(UInt(32.W))
-    val raddr = Input(Vec(readPorts, UInt(5.W)))
-    val rdata = Output(Vec(readPorts, UInt(32.W)))
+    val waddr = Input(UInt(coreConfig.RegAddrWidth.W))
+    val wdata = Input(UInt(coreConfig.XLEN.W))
+    val raddr = Input(Vec(coreConfig.RegReadPorts, UInt(coreConfig.RegAddrWidth.W)))
+    val rdata = Output(Vec(coreConfig.RegReadPorts, UInt(coreConfig.XLEN.W)))
   })
 
-  def get(port: Int, addr: UInt): UInt = {
-    this.io.raddr(port) := addr
-    this.io.rdata(port)
-  }
+  val reg = RegInit(VecInit(Seq.fill(32)(0.U(coreConfig.XLEN.W))))
 
-  def set(addr: UInt, data: UInt) = {
-    this.io.wen := true.B
-    this.io.waddr := addr
-    this.io.wdata := data
-  }
-
-  val reg = RegInit(VecInit(Seq.fill(32)(0.U(32.W))))
-
-  when(io.wen) {
+  when(io.wen && io.waddr =/= 0.U) {
     reg(io.waddr) := io.wdata
   }
-  for (i <- 0 until readPorts) {
+  for (i <- 0 until coreConfig.RegReadPorts) {
     when(io.raddr(i) === 0.U) {
       io.rdata(i) := 0.U
     }.otherwise {

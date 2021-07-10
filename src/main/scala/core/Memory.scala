@@ -4,18 +4,13 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.loadMemoryFromFile
 
-class Memory(
-    addrWidth: Int,
-    dataBytes: Int,
-    depth: Int,
-    memoryFile: String = ""
-) extends Module {
-  class ReadPort extends Bundle {
+object Memory {
+  class ReadPort(addrWidth: Int, dataBytes: Int) extends Bundle {
     val en = Input(Bool())
     val addr = Input(UInt(addrWidth.W))
     val data = Output(Vec(dataBytes, UInt(8.W)))
   }
-  class ReadWritePort extends Bundle {
+  class ReadWritePort(addrWidth: Int, dataBytes: Int) extends Bundle {
     val en = Input(Bool())
     val rw = Input(Bool())
     val addr = Input(UInt(addrWidth.W))
@@ -23,10 +18,17 @@ class Memory(
     val wmask = Input(Vec(dataBytes, Bool()))
     val wdata = Input(Vec(dataBytes, UInt(8.W)))
   }
+}
 
+class Memory(
+    addrWidth: Int,
+    dataBytes: Int,
+    depth: Int,
+    memoryFile: String = ""
+) extends Module {
   val io = IO(new Bundle {
-    val rport = new ReadPort
-    val rwport = new ReadWritePort
+    val rport = new Memory.ReadPort(addrWidth, dataBytes)
+    val rwport = new Memory.ReadWritePort(addrWidth, dataBytes)
   })
 
   val mem = SyncReadMem(depth, Vec(dataBytes, UInt(8.W)))
