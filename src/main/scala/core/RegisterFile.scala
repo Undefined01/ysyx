@@ -15,6 +15,10 @@ class RegisterFile(coreConfig: CoreConfig) extends Module {
       val waddr = Input(UInt(coreConfig.RegAddrWidth.W))
       val wdata = Input(UInt(coreConfig.XLEN.W))
     }
+    val debug = if (coreConfig.DebugPin) Some(new Bundle {
+      val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
+    })
+    else None
   })
 
   val reg = RegInit(VecInit(Seq.fill(32)(0.U(coreConfig.XLEN.W))))
@@ -28,5 +32,9 @@ class RegisterFile(coreConfig: CoreConfig) extends Module {
     }.otherwise {
       io.rport.rdata(i) := reg(io.rport.raddr(i))
     }
+  }
+
+  if (coreConfig.DebugPin) {
+    io.debug.get.reg := reg
   }
 }

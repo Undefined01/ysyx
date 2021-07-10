@@ -5,7 +5,6 @@ import chisel3.util._
 
 object ZeroExt {
   def apply(x: UInt, len: Int) = {
-    require(x.getWidth > 0)
     if (x.getWidth >= len)
       x(len - 1, 0)
     else

@@ -95,7 +95,7 @@ class EX(coreConfig: CoreConfig) extends Module {
   val alu = Module(new Alu(coreConfig))
   alu.io.in <> io.in.alu
 
-  io.out.valid := RegNext(io.in.valid, false.B)
-  io.out.write_back.rd := RegNext(io.in.write_back.rd, 0.U)
-  io.out.write_back.data := RegNext(alu.io.out, 0.U)
+  io.out.valid := io.in.valid
+  io.out.write_back.rd := io.in.write_back.rd
+  io.out.write_back.data := alu.io.out
 }

@@ -5,7 +5,13 @@ import chisel3.util._
 import utils.Logger.Debug
 
 class Core(coreConfig: CoreConfig) extends Module {
-  val io = IO(new Bundle {})
+  val io = IO(new Bundle {
+    val debug =
+      if (coreConfig.DebugPin) Some(new Bundle {
+        val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
+      })
+      else None
+  })
 
   val mem = Module(
     new Memory(
@@ -21,13 +27,21 @@ class Core(coreConfig: CoreConfig) extends Module {
   mem.io.rwport.wmask := DontCare
   mem.io.rwport.wdata := DontCare
 
-  val pc = RegInit(coreConfig.InitialPC.U)
+  val pc = Wire(UInt(coreConfig.XLEN.W))
+  pc := coreConfig.InitialPC.U
+
   val regs = Module(new RegisterFile(coreConfig))
 
   Debug("-----------------------------------\n")
   val ifu = Module(new IF(coreConfig))
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
+  Debug(
+    ifu.io.if_io.en,
+    "IF: fetch pc=0x%x 0x%x\n",
+    ifu.io.in.pc,
+    ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
+  )
 
   val idu = Module(new ID(coreConfig))
   idu.io.in.valid := ifu.io.out.valid
@@ -38,22 +52,42 @@ class Core(coreConfig: CoreConfig) extends Module {
     pc := idu.io.out.predicted_pc
   }
   Debug(idu.io.in.valid, "ID in: pc=0x%x 0x%x\n", idu.io.in.pc, idu.io.in.instr)
-  Debug(idu.io.in.valid, "ID out: predicted=0x%x\n", idu.io.out.predicted_pc)
+  Debug(
+    idu.io.out.valid,
+    "ID out: predicted_pc=0x%x fn=%d op1=%x op2=%x\n",
+    idu.io.out.predicted_pc,
+    idu.io.out.alu.fn,
+    idu.io.out.alu.op1,
+    idu.io.out.alu.op2
+  )
 
   val exu = Module(new EX(coreConfig))
-  exu.io.in.valid := idu.io.out.valid
-  exu.io.in.predicted_pc := idu.io.out.predicted_pc
-  exu.io.in.alu := idu.io.out.alu
-  exu.io.in.write_back := idu.io.out.write_back
-  Debug(exu.io.in.valid, "EX in: pc=0x%x\n", exu.io.in.predicted_pc)
-  Debug(exu.io.in.valid, "EX out: write %d=0x%x\n", exu.io.out.write_back.rd, exu.io.out.write_back.data)
+  exu.io.in.valid := RegNext(idu.io.out.valid, false.B)
+  exu.io.in.predicted_pc := RegNext(idu.io.out.predicted_pc)
+  exu.io.in.alu := RegNext(idu.io.out.alu)
+  exu.io.in.write_back := RegNext(idu.io.out.write_back)
+  Debug(
+    exu.io.in.valid,
+    "EX in: predicted_pc=0x%x fn=%d op1=%x op2=%x\n",
+    exu.io.in.predicted_pc,
+    exu.io.in.alu.fn,
+    exu.io.in.alu.op1,
+    exu.io.in.alu.op2
+  )
+  Debug(
+    exu.io.in.valid,
+    "EX out: write %d=0x%x\n",
+    exu.io.out.write_back.rd,
+    exu.io.out.write_back.data
+  )
 
   val wbu = Module(new WB(coreConfig))
-  wbu.io.in.valid := exu.io.out.valid
-  wbu.io.in.rd := exu.io.out.write_back.rd
-  wbu.io.in.data := exu.io.out.write_back.data
+  wbu.io.in.valid := RegNext(exu.io.out.valid, false.B)
+  wbu.io.in.rd := RegNext(exu.io.out.write_back.rd)
+  wbu.io.in.data := RegNext(exu.io.out.write_back.data)
   wbu.io.reg_io <> regs.io.wport
 
-  pc := pc + 4.U
-
+  if (coreConfig.DebugPin) {
+    io.debug.get.reg := regs.io.debug.get.reg
+  }
 }

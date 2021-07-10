@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 
 trait CoreConfig {
+  val DebugPin = false
   val XLEN = 64
   val RegReadPorts = 2
   val RegAddrWidth = 5

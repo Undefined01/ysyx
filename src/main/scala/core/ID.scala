@@ -9,7 +9,7 @@ object DecodeConstant {
 
 }
 
-class Decoder(coreConfig: CoreConfig) extends Module {
+class ID(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
       val valid = Input(Bool())
@@ -70,39 +70,4 @@ class Decoder(coreConfig: CoreConfig) extends Module {
       io.out.write_back.rd := rd
     }
   }
-}
-
-class ID(coreConfig: CoreConfig) extends Module {
-  val io = IO(new Bundle {
-    val in = new Bundle {
-      val valid = Input(Bool())
-      val pc = Input(UInt(coreConfig.XLEN.W))
-      val instr = Input(UInt(coreConfig.InstrLen.W))
-    }
-
-    val reg_io = new Bundle {
-      val raddr = Output(Vec(2, UInt(coreConfig.RegAddrWidth.W)))
-      val rdata = Input(Vec(2, UInt(coreConfig.XLEN.W)))
-    }
-
-    val out = new Bundle {
-      val valid = Output(Bool())
-      val predicted_pc = Output(UInt(coreConfig.XLEN.W))
-      val alu = new AluInput(coreConfig)
-      val write_back = new Bundle {
-        val rd = Output(UInt(coreConfig.RegAddrWidth.W))
-      }
-    }
-  })
-
-  val decoder = Module(new Decoder(coreConfig))
-  decoder.io.in <> io.in
-  decoder.io.reg_io <> io.reg_io
-
-  io.out.valid := RegNext(decoder.io.out.valid, false.B)
-  io.out.predicted_pc := RegNext(decoder.io.out.predicted_pc)
-  io.out.alu := RegNext(decoder.io.out.alu)
-  io.out.write_back := RegNext(decoder.io.out.write_back)
-  // val out = RegNext(decoder.io.out)
-  // io.out := out
 }

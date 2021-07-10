@@ -23,9 +23,9 @@ class IF(coreConfig: CoreConfig) extends Module {
   io.if_io.en := true.B
   io.if_io.addr := io.in.pc >> 3
   val instr = Mux(
-    io.in.pc(2),
-    Cat(io.if_io.data(3), io.if_io.data(2), io.if_io.data(1), io.if_io.data(0)),
-    Cat(io.if_io.data(7), io.if_io.data(6), io.if_io.data(5), io.if_io.data(4))
+    io.out.pc(2),
+    Cat(io.if_io.data(7), io.if_io.data(6), io.if_io.data(5), io.if_io.data(4)),
+    Cat(io.if_io.data(3), io.if_io.data(2), io.if_io.data(1), io.if_io.data(0))
   )
 
   io.out.valid := RegNext(true.B, false.B)
