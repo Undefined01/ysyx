@@ -96,6 +96,9 @@ class EX(coreConfig: CoreConfig) extends Module {
   alu.io.in <> io.in.alu
 
   io.out.valid := io.in.valid
-  io.out.write_back.rd := io.in.write_back.rd
+  io.out.write_back.rd := io.in.write_back.rd & Fill(
+    coreConfig.RegAddrWidth,
+    io.out.valid
+  )
   io.out.write_back.data := alu.io.out
 }

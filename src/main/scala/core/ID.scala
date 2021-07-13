@@ -22,6 +22,17 @@ class ID(coreConfig: CoreConfig) extends Module {
       val rdata = Input(Vec(2, UInt(coreConfig.XLEN.W)))
     }
 
+    val forward0= 
+      new Bundle {
+        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
+        val data = Input(UInt(coreConfig.XLEN.W))
+      }
+    val forward1 = 
+      new Bundle {
+        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
+        val data = Input(UInt(coreConfig.XLEN.W))
+      }
+
     val out = new Bundle {
       val valid = Output(Bool())
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
@@ -56,6 +67,25 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   io.reg_io.raddr(0) := rs1
   io.reg_io.raddr(1) := rs2
+  val rop1 = Wire(UInt(coreConfig.XLEN.W))
+  rop1 := io.reg_io.rdata(0)
+  when(rs1 =/= 0.U) {
+    when(rs1 === io.forward0.rd) {
+      rop1 := io.forward0.data
+    }.elsewhen(rs1 === io.forward1.rd) {
+      rop1 := io.forward1.data
+    }
+  }
+  val rop2 = Wire(UInt(coreConfig.XLEN.W))
+  rop2 := io.reg_io.rdata(1)
+  when(rs2 =/= 0.U) {
+    when(rs2 === io.forward0.rd) {
+      rop2 := io.forward0.data
+    }.elsewhen(rs2 === io.forward1.rd) {
+      rop2 := io.forward1.data
+    }
+  }
+
   io.out.valid := io.in.valid
   io.out.alu := DontCare
   io.out.write_back.rd := 0.U
@@ -65,7 +95,7 @@ class ID(coreConfig: CoreConfig) extends Module {
   switch(opcode) {
     is(DecodeConstant.OpImm.U) {
       io.out.alu.fn := ZeroExt(funct3, AluFn.bits)
-      io.out.alu.op1 := io.reg_io.rdata(0)
+      io.out.alu.op1 := rop1
       io.out.alu.op2 := I_imm
       io.out.write_back.rd := rd
     }

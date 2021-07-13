@@ -4,9 +4,9 @@ import chisel3._
 import chisel3.tester._
 import org.scalatest.FreeSpec
 
-class RegisterFileTest extends FreeSpec with ChiselScalatestTester {
+class RegFileTest extends FreeSpec with ChiselScalatestTester {
   "Registers can keep values" in {
-    test(new RegisterFile(new RV64ICoreConfig)) { c =>
+    test(new RegFile(new RV64ICoreConfig)) { c =>
       def readExpect(addr: Int, value: Int, port: Int = 0): Unit = {
         c.io.rport.raddr(port).poke(addr.U)
         c.io.rport.rdata(port).expect(value.U)

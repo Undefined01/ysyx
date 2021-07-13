@@ -3,7 +3,7 @@ package core
 import chisel3._
 import chisel3.util._
 
-class RegisterFile(coreConfig: CoreConfig) extends Module {
+class RegFile(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val rport = new Bundle {
       val raddr =

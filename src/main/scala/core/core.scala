@@ -32,10 +32,13 @@ class Core(coreConfig: CoreConfig) extends Module {
   val pc = Wire(UInt(coreConfig.XLEN.W))
   pc := coreConfig.InitialPC.U
 
-  val regs = Module(new RegisterFile(coreConfig))
+  val regs = Module(new RegFile(coreConfig))
+  val ifu = Module(new IF(coreConfig))
+  val idu = Module(new ID(coreConfig))
+  val exu = Module(new EX(coreConfig))
+  val wbu = Module(new WB(coreConfig))
 
   Debug("-----------------------------------\n")
-  val ifu = Module(new IF(coreConfig))
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
   Debug(
@@ -45,7 +48,6 @@ class Core(coreConfig: CoreConfig) extends Module {
     ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
   )
 
-  val idu = Module(new ID(coreConfig))
   idu.io.in.valid := ifu.io.out.valid
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
@@ -63,11 +65,11 @@ class Core(coreConfig: CoreConfig) extends Module {
     idu.io.out.alu.op2
   )
 
-  val exu = Module(new EX(coreConfig))
   exu.io.in.valid := RegNext(idu.io.out.valid, false.B)
   exu.io.in.predicted_pc := RegNext(idu.io.out.predicted_pc)
   exu.io.in.alu := RegNext(idu.io.out.alu)
   exu.io.in.write_back := RegNext(idu.io.out.write_back)
+  idu.io.forward0 <> exu.io.out.write_back
   Debug(
     exu.io.in.valid,
     "EX in: predicted_pc=0x%x fn=%d op1=%x op2=%x\n",
@@ -83,11 +85,11 @@ class Core(coreConfig: CoreConfig) extends Module {
     exu.io.out.write_back.data
   )
 
-  val wbu = Module(new WB(coreConfig))
   wbu.io.in.valid := RegNext(exu.io.out.valid, false.B)
-  wbu.io.in.rd := RegNext(exu.io.out.write_back.rd)
-  wbu.io.in.data := RegNext(exu.io.out.write_back.data)
+  val wbu_write_back = RegNext(exu.io.out.write_back)
+  wbu.io.in.write_back := wbu_write_back
   wbu.io.reg_io <> regs.io.wport
+  idu.io.forward1 <> wbu_write_back
 
   if (coreConfig.DebugPin) {
     io.debug.get.reg := regs.io.debug.get.reg

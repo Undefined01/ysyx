@@ -48,7 +48,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
               val l = c.io.debug.get.reg(idx).peek().litValue
               val r = BigInt(x, 16)
               if (l != r) {
-                println(f"ERROR Reg ${idx}%d got ${l}%x expect ${r}%x\n")
+                println(f"ERROR Reg ${idx}%d got 0x${l}%x expect 0x${r}%x\n")
                 throw new RuntimeException(s"Assertion fail")
               }
             }
@@ -58,6 +58,8 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
     }
   }
   "core can run basic immediate arithmetic instructions" in {
-    runTestCase("addi")
+    // runTestCase("addi_with_nop")
+    // runTestCase("addi")
+    runTestCase("opimm")
   }
 }
