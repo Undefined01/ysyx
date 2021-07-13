@@ -33,10 +33,7 @@ object MemoryTest {
 
     var idx = 0
     Iterator.continually(bsrc.read()).takeWhile(_ != -1).foreach { ch =>
-      val hex = "0123456789ABCDEF"
-      val high = ((ch >> 4) & 0x0f).toByte
-      val low = (ch & 0x0f).toByte
-      target(idx).write(s"${hex(high)}${hex(low)}\n".getBytes())
+      target(idx).write(f"${ch.toByte}%02X\n".getBytes())
       idx += 1
       if (idx == bytes)
         idx = 0

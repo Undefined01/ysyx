@@ -6,7 +6,7 @@ import utils._
 
 object DecodeConstant {
   val OpImm = BigInt("0010011", 2)
-
+  val Op = BigInt("0110011", 2)
 }
 
 class ID(coreConfig: CoreConfig) extends Module {
@@ -22,12 +22,12 @@ class ID(coreConfig: CoreConfig) extends Module {
       val rdata = Input(Vec(2, UInt(coreConfig.XLEN.W)))
     }
 
-    val forward0= 
+    val forward0 =
       new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
         val data = Input(UInt(coreConfig.XLEN.W))
       }
-    val forward1 = 
+    val forward1 =
       new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
         val data = Input(UInt(coreConfig.XLEN.W))
@@ -94,9 +94,15 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   switch(opcode) {
     is(DecodeConstant.OpImm.U) {
-      io.out.alu.fn := ZeroExt(funct3, AluFn.bits)
+      io.out.alu.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
       io.out.alu.op1 := rop1
       io.out.alu.op2 := I_imm
+      io.out.write_back.rd := rd
+    }
+    is(DecodeConstant.Op.U) {
+      io.out.alu.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
+      io.out.alu.op1 := rop1
+      io.out.alu.op2 := rop2
       io.out.write_back.rd := rd
     }
   }

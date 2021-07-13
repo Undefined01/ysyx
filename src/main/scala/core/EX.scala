@@ -4,9 +4,21 @@ import chisel3._
 import chisel3.util._
 import utils._
 
-object AluFn extends Enumeration {
-  val ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND = Value
-  val SEQ, SNE, SGE, SGEU = Value
+object AluFn {
+  val ADD = 0
+  val SUB = 0 + 8
+  val SLL = 1
+  val SLT = 2
+  val SLTU = 3
+  val XOR = 4
+  val SRL = 5
+  val SRA = 5 + 8
+  val OR = 6
+  val AND = 7
+  val SEQ = 1 + 8
+  val SNE = 4 + 8
+  val SGE = 2 + 8
+  val SGEU = 3 + 8
 
   val bits = 4
 }
@@ -55,20 +67,20 @@ class Alu(coreConfig: CoreConfig) extends Module {
     fn,
     add_sub,
     Array(
-      AluFn.ADD.id.U -> add_sub,
-      AluFn.SUB.id.U -> add_sub,
-      AluFn.SLL.id.U -> sll,
-      AluFn.SLT.id.U -> slt,
-      AluFn.SLTU.id.U -> sltu,
-      AluFn.XOR.id.U -> xor,
-      AluFn.SRL.id.U -> srl,
-      AluFn.SRA.id.U -> sra,
-      AluFn.OR.id.U -> or,
-      AluFn.AND.id.U -> and,
-      AluFn.SEQ.id.U -> seq,
-      AluFn.SNE.id.U -> sne,
-      AluFn.SGE.id.U -> sge,
-      AluFn.SGEU.id.U -> sgeu
+      AluFn.ADD.U -> add_sub,
+      AluFn.SUB.U -> add_sub,
+      AluFn.SLL.U -> sll,
+      AluFn.SLT.U -> slt,
+      AluFn.SLTU.U -> sltu,
+      AluFn.XOR.U -> xor,
+      AluFn.SRL.U -> srl,
+      AluFn.SRA.U -> sra,
+      AluFn.OR.U -> or,
+      AluFn.AND.U -> and,
+      AluFn.SEQ.U -> seq,
+      AluFn.SNE.U -> sne,
+      AluFn.SGE.U -> sge,
+      AluFn.SGEU.U -> sgeu
     )
   )
 }
