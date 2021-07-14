@@ -102,8 +102,9 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
 
   "Driver should produce correct values" in {
     test(new Memory.PortDriver(32, 8)) { c =>
-      def testRead(addr: Int, width: Int, data: Seq[Int]) = {
+      def testRead(addr: Int, unsigned: Boolean, width: Int, data: Seq[Int]) = {
         c.io.in.addr.poke(addr.U)
+        c.io.in.unsigned.poke(unsigned.B)
         c.io.in.wWidth.poke(width.U)
         data.zipWithIndex.foreach { case (x, idx) =>
           c.io.mem_ctrl.rdata(idx).poke(x.U)
@@ -112,7 +113,11 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
         val sub_addr = addr & 7
         var expect = BigInt(0)
         for (i <- 0 until 1 << width)
-          expect |= (BigInt(data(i + sub_addr)) << (i * 8))
+          expect |= BigInt(data(i + sub_addr)) << (i * 8)
+        val signBit = expect & 1 << ((1 << width) * 8 - 1)
+        if (!unsigned && signBit != 0)
+          for (i <- 1 << width until 8)
+            expect |= BigInt(0xff) << (i * 8)
         c.io.out.rdata.expect(expect.U)
       }
       def testWrite(
@@ -130,17 +135,26 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
             .wmask(i)
             .expect(mask.B)
           if (mask)
-            c.io.mem_ctrl.wdata(i).expect(((data >> ((i - sub_addr) * 8)) & 0xff).U)
+            c.io.mem_ctrl
+              .wdata(i)
+              .expect(((data >> ((i - sub_addr) * 8)) & 0xff).U)
         }
       }
 
-      testRead(0, 0, (8 until 16))
-      testRead(3, 0, (8 until 16))
-      testRead(7, 0, (8 until 16))
-      testRead(6, 1, (8 until 16))
-      testRead(4, 2, (8 until 16))
-      testRead(0, 3, (8 until 16))
-      
+      testRead(0, false, 0, (0x80 until 0x88))
+      testRead(3, false, 0, (0x80 until 0x88))
+      testRead(7, false, 0, (0x80 until 0x88))
+      testRead(6, false, 1, (0x80 until 0x88))
+      testRead(4, false, 2, (0x80 until 0x88))
+      testRead(0, false, 3, (0x80 until 0x88))
+
+      testRead(0, true, 0, (0x80 until 0x88))
+      testRead(3, true, 0, (0x80 until 0x88))
+      testRead(7, true, 0, (0x80 until 0x88))
+      testRead(6, true, 1, (0x80 until 0x88))
+      testRead(4, true, 2, (0x80 until 0x88))
+      testRead(0, true, 3, (0x80 until 0x88))
+
       testWrite(0, 0, BigInt("123456789abcdef9", 16))
       testWrite(3, 0, BigInt("123456789abcdef9", 16))
       testWrite(7, 0, BigInt("123456789abcdef9", 16))

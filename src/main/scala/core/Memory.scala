@@ -25,7 +25,8 @@ object Memory {
     val io = IO(new Bundle {
       val in = new Bundle {
         val addr = Input(UInt(addrWidth.W))
-        val wWidth = Input(UInt(log2Ceil(addrWidth).W))
+        val unsigned = Input(Bool())
+        val wWidth = Input(UInt(log2Ceil(log2Ceil(dataBytes) + 1).W))
         val wdata = Input(UInt((dataBytes * 8).W))
       }
       val mem_ctrl = new Bundle {
@@ -70,11 +71,13 @@ object Memory {
         Cat(io.mem_ctrl.rdata.reverse)
       } else {
         VecInit((0 until 1 << (log2Ceil(dataBytes) - y)).map { x =>
-          ZeroExt(
-            Cat((0 until 1 << y).reverse.map { b =>
-              io.mem_ctrl.rdata((x << y) + b)
-            }),
-            dataBytes * 8
+          val data = Cat((0 until 1 << y).reverse.map { b =>
+            io.mem_ctrl.rdata((x << y) + b)
+          })
+          Mux(
+            io.in.unsigned,
+            ZeroExt(data, dataBytes * 8),
+            SignExt(data, dataBytes * 8)
           )
         })(io.in.addr(log2Ceil(dataBytes) - 1, y))
       }
