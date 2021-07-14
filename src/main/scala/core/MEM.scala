@@ -2,6 +2,7 @@ package core
 
 import chisel3._
 import chisel3.util._
+import utils.Logger.Debug
 
 class MEM(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
@@ -22,6 +23,7 @@ class MEM(coreConfig: CoreConfig) extends Module {
       }
     }
     val out = new Bundle {
+    val valid = Output(Bool())
       val mem =
         Flipped(new Memory.ReadWritePort(coreConfig.XLEN, coreConfig.XLEN / 8))
       val write_back = new Bundle {
@@ -32,8 +34,6 @@ class MEM(coreConfig: CoreConfig) extends Module {
   })
 
   val state = RegInit(0.U(1.W))
-
-  io.in_ready := state === 0.U
 
   val mem_driver = Module(
     new Memory.PortDriver(coreConfig.XLEN, coreConfig.XLEN / 8)
@@ -52,4 +52,24 @@ class MEM(coreConfig: CoreConfig) extends Module {
 
   io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := io.in.write_back.data
+
+  io.in_ready := true.B
+  io.out.valid := true.B
+  when(state === 0.U) {
+    when(io.in.mem.en && !io.in.mem.rw) {
+      state := 1.U
+      io.in_ready := false.B
+      io.out.valid := false.B
+      Debug(io.out.mem.en, "MEM fetch %x\n", io.in.mem.addr)
+    }
+  }.elsewhen(state === 1.U) {
+    state := 0.U
+    io.out.mem.en := false.B
+    io.out.write_back.data := mem_driver.io.out.rdata
+    Debug(
+      "MEM %x got %x\n",
+      io.in.mem.addr,
+      mem_driver.io.out.rdata
+    )
+  }
 }

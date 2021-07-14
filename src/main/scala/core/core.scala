@@ -23,11 +23,6 @@ class Core(coreConfig: CoreConfig) extends Module {
       memoryFile = coreConfig.MemoryFile
     )
   )
-  // mem.io.rwport.en := false.B
-  // mem.io.rwport.rw := false.B
-  // mem.io.rwport.addr := DontCare
-  // mem.io.rwport.wmask := DontCare
-  // mem.io.rwport.wdata := DontCare
 
   val pc = Wire(UInt(coreConfig.XLEN.W))
   pc := coreConfig.InitialPC.U
@@ -48,7 +43,7 @@ class Core(coreConfig: CoreConfig) extends Module {
   Debug(
     ifu.io.if_io.en,
     "IF: fetch pc=0x%x 0x%x\n",
-    ifu.io.in.pc,
+    ifu.io.if_io.addr,
     ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
   )
 
@@ -62,11 +57,14 @@ class Core(coreConfig: CoreConfig) extends Module {
   Debug(idu.io.in.valid, "ID in: pc=0x%x 0x%x\n", idu.io.in.pc, idu.io.in.instr)
   Debug(
     idu.io.out.valid,
-    "ID out: predicted_pc=0x%x fn=%d op1=%x op2=%x\n",
+    "ID out: predicted_pc=0x%x fn=%d op1=%x op2=%x mem=%d%d wb=%d\n",
     idu.io.out.predicted_pc,
     idu.io.out.alu.fn,
     idu.io.out.alu.op1,
-    idu.io.out.alu.op2
+    idu.io.out.alu.op2,
+    idu.io.out.mem.en,
+    idu.io.out.mem.rw,
+    idu.io.out.write_back.rd
   )
 
   id_ex.io.in <> idu.io.out
@@ -88,23 +86,32 @@ class Core(coreConfig: CoreConfig) extends Module {
   )
   Debug(
     exu.io.in.valid,
-    "EX out: write %d=0x%x\n",
+    "EX out: mem=%d%d %x; write %d=0x%x\n",
+    exu.io.out.mem.en,
+    exu.io.out.mem.rw,
+    exu.io.out.mem.addr,
     exu.io.out.write_back.rd,
     exu.io.out.write_back.data
   )
 
   ex_mem.io.in := exu.io.out
-  ex_mem.io.out_ready := true.B
+  ex_mem.io.out_ready := memu.io.in_ready
 
   memu.io.in.valid := ex_mem.io.out.valid
   memu.io.in.mem := ex_mem.io.out.mem
   memu.io.in.write_back := ex_mem.io.out.write_back
   memu.io.out.mem <> mem.io.rwport
-  
-  wbu.io.in.valid := ex_mem.io.out.valid
+
+  wbu.io.in.valid := memu.io.out.valid
   wbu.io.in.write_back := memu.io.out.write_back
   wbu.io.reg_io <> regs.io.wport
-  idu.io.forward1 <> ex_mem.io.out.write_back
+  idu.io.forward1 <> memu.io.out.write_back
+  Debug(
+    wbu.io.in.valid && wbu.io.in.write_back.rd =/= 0.U,
+    "WB in: reg%d=%x\n",
+    wbu.io.in.write_back.rd,
+    wbu.io.in.write_back.data,
+  )
 
   if (coreConfig.DebugPin) {
     io.debug.get.reg := regs.io.debug.get.reg

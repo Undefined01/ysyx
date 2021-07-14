@@ -119,6 +119,14 @@ class ID(coreConfig: CoreConfig) extends Module {
       io.out.alu.op2 := rop2
       io.out.write_back.rd := rd
     }
+    is(DecodeConstant.Load.U) {
+      io.out.alu.fn := AluFn.ADD.U
+      io.out.alu.op1 := rop1
+      io.out.alu.op2 := I_imm
+      io.out.write_back.rd := rd
+      io.out.mem.en := true.B
+      io.out.mem.rw := false.B
+    }
     is(DecodeConstant.Store.U) {
       io.out.alu.fn := AluFn.ADD.U
       io.out.alu.op1 := rop1

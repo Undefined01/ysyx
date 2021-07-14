@@ -25,6 +25,9 @@ ${build_dir}/%.o: ${src_dir}/%.s ${include_dir}/common.h
 %.elf: %.o ${script_dir}/${RV_ARCH}.ld
 	@${RV_LD} -T ${script_dir}/${RV_ARCH}.ld -o $@ $<
 
+%.txt: %.elf
+	@${RV_OBJDUMP} -D $^ > $@
+
 %.bin: %.elf
 	@${RV_OBJCOPY} --strip-all $^ -O binary $@
 
@@ -34,7 +37,7 @@ make_build_dir:
 	@mkdir -p ${build_dir}
 
 all: make_build_dir \
-	$(BINS) $(BINS:.bin=.elf)
+	$(BINS) $(BINS:.bin=.elf) $(BINS:.bin=.txt)
 
 clean:
 	rm -r ${build_dir}
