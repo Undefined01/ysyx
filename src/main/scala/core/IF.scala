@@ -22,7 +22,7 @@ class IF(coreConfig: CoreConfig) extends Module {
   })
 
   io.if_io.en := true.B
-  io.if_io.addr := Mux(io.out_ready, io.in.pc >> 3, io.out.pc)
+  io.if_io.addr := Mux(io.out_ready, io.in.pc >> 3, io.out.pc >> 3)
   val instr = Mux(
     io.out.pc(2),
     Cat(io.if_io.data(7), io.if_io.data(6), io.if_io.data(5), io.if_io.data(4)),
