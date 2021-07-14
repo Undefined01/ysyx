@@ -99,4 +99,54 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
       readExpect(0, Seq(0x12, 0xcd, 0x56, 0xcd))
     }
   }
+
+  "Driver should produce correct values" in {
+    test(new Memory.PortDriver(32, 8)) { c =>
+      def testRead(addr: Int, width: Int, data: Seq[Int]) = {
+        c.io.in.addr.poke(addr.U)
+        c.io.in.wWidth.poke(width.U)
+        data.zipWithIndex.foreach { case (x, idx) =>
+          c.io.mem_ctrl.rdata(idx).poke(x.U)
+        }
+        c.io.mem_ctrl.addr.expect((addr >> 3).U)
+        val sub_addr = addr & 7
+        var expect = BigInt(0)
+        for (i <- 0 until 1 << width)
+          expect |= (BigInt(data(i + sub_addr)) << (i * 8))
+        c.io.out.rdata.expect(expect.U)
+      }
+      def testWrite(
+          addr: Int,
+          width: Int,
+          data: BigInt
+      ) = {
+        c.io.in.addr.poke(addr.U)
+        c.io.in.wWidth.poke(width.U)
+        c.io.in.wdata.poke(data.U)
+        val sub_addr = addr & 7
+        for (i <- 0 until 8) {
+          val mask = sub_addr <= i && i < sub_addr + (1 << width)
+          c.io.mem_ctrl
+            .wmask(i)
+            .expect(mask.B)
+          if (mask)
+            c.io.mem_ctrl.wdata(i).expect(((data >> ((i - sub_addr) * 8)) & 0xff).U)
+        }
+      }
+
+      testRead(0, 0, (8 until 16))
+      testRead(3, 0, (8 until 16))
+      testRead(7, 0, (8 until 16))
+      testRead(6, 1, (8 until 16))
+      testRead(4, 2, (8 until 16))
+      testRead(0, 3, (8 until 16))
+      
+      testWrite(0, 0, BigInt("123456789abcdef9", 16))
+      testWrite(3, 0, BigInt("123456789abcdef9", 16))
+      testWrite(7, 0, BigInt("123456789abcdef9", 16))
+      testWrite(6, 1, BigInt("123456789abcdef9", 16))
+      testWrite(4, 2, BigInt("123456789abcdef9", 16))
+      testWrite(0, 3, BigInt("123456789abcdef9", 16))
+    }
+  }
 }
