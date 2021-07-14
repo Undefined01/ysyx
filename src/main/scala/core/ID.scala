@@ -7,6 +7,8 @@ import utils._
 object DecodeConstant {
   val OpImm = BigInt("0010011", 2)
   val Op = BigInt("0110011", 2)
+  val Load = BigInt("0000011", 2)
+  val Store = BigInt("0100011", 2)
 }
 
 class ID(coreConfig: CoreConfig) extends Module {
@@ -37,6 +39,13 @@ class ID(coreConfig: CoreConfig) extends Module {
       val valid = Output(Bool())
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
       val alu = new AluInput(coreConfig)
+      val mem = new Bundle {
+        val en = Output(Bool())
+        val rw = Output(Bool())
+        val unsigned = Output(Bool())
+        val wWidth = Output(UInt(3.W))
+        val wdata = Output(UInt(coreConfig.XLEN.W))
+      }
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
       }
@@ -88,6 +97,11 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   io.out.valid := io.in.valid
   io.out.alu := DontCare
+  io.out.mem.en := false.B
+  io.out.mem.rw := DontCare
+  io.out.mem.unsigned := funct3(2).asBool
+  io.out.mem.wWidth := funct3(1, 0)
+  io.out.mem.wdata := rop2
   io.out.write_back.rd := 0.U
 
   io.out.predicted_pc := io.in.pc + 4.U
@@ -104,6 +118,13 @@ class ID(coreConfig: CoreConfig) extends Module {
       io.out.alu.op1 := rop1
       io.out.alu.op2 := rop2
       io.out.write_back.rd := rd
+    }
+    is(DecodeConstant.Store.U) {
+      io.out.alu.fn := AluFn.ADD.U
+      io.out.alu.op1 := rop1
+      io.out.alu.op2 := S_imm
+      io.out.mem.en := true.B
+      io.out.mem.rw := true.B
     }
   }
 }

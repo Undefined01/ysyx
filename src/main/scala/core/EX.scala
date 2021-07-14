@@ -90,6 +90,13 @@ class EX(coreConfig: CoreConfig) extends Module {
     val in = new Bundle {
       val valid = Input(Bool())
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
+      val mem = new Bundle {
+        val en = Input(Bool())
+        val rw = Input(Bool())
+        val unsigned = Input(Bool())
+        val wWidth = Input(UInt(3.W))
+        val wdata = Input(UInt(coreConfig.XLEN.W))
+      }
       val write_back = new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
       }
@@ -97,6 +104,14 @@ class EX(coreConfig: CoreConfig) extends Module {
     }
     val out = new Bundle {
       val valid = Output(Bool())
+      val mem = new Bundle {
+        val en = Output(Bool())
+        val rw = Output(Bool())
+        val unsigned = Output(Bool())
+        val wWidth = Output(UInt(3.W))
+        val addr = Output(UInt(coreConfig.XLEN.W))
+        val wdata = Output(UInt(coreConfig.XLEN.W))
+      }
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
         val data = Output(UInt(coreConfig.XLEN.W))
@@ -108,9 +123,14 @@ class EX(coreConfig: CoreConfig) extends Module {
   alu.io.in <> io.in.alu
 
   io.out.valid := io.in.valid
-  io.out.write_back.rd := io.in.write_back.rd & Fill(
-    coreConfig.RegAddrWidth,
-    io.out.valid
-  )
+
+  io.out.mem.en := io.in.mem.en
+  io.out.mem.rw := io.in.mem.rw
+  io.out.mem.unsigned := io.in.mem.unsigned
+  io.out.mem.wWidth := io.in.mem.wWidth
+  io.out.mem.wdata := io.in.mem.wdata
+  io.out.mem.addr := alu.io.out
+  
+  io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := alu.io.out
 }

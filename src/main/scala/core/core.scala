@@ -23,11 +23,11 @@ class Core(coreConfig: CoreConfig) extends Module {
       memoryFile = coreConfig.MemoryFile
     )
   )
-  mem.io.rwport.en := false.B
-  mem.io.rwport.rw := false.B
-  mem.io.rwport.addr := DontCare
-  mem.io.rwport.wmask := DontCare
-  mem.io.rwport.wdata := DontCare
+  // mem.io.rwport.en := false.B
+  // mem.io.rwport.rw := false.B
+  // mem.io.rwport.addr := DontCare
+  // mem.io.rwport.wmask := DontCare
+  // mem.io.rwport.wdata := DontCare
 
   val pc = Wire(UInt(coreConfig.XLEN.W))
   pc := coreConfig.InitialPC.U
@@ -35,12 +35,16 @@ class Core(coreConfig: CoreConfig) extends Module {
   val regs = Module(new RegFile(coreConfig))
   val ifu = Module(new IF(coreConfig))
   val idu = Module(new ID(coreConfig))
+  val id_ex = Module(new ID_EX(coreConfig))
   val exu = Module(new EX(coreConfig))
+  val ex_mem = Module(new EX_MEM(coreConfig))
+  val memu = Module(new MEM(coreConfig))
   val wbu = Module(new WB(coreConfig))
 
   Debug("-----------------------------------\n")
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
+  ifu.io.out_ready := id_ex.io.in_ready
   Debug(
     ifu.io.if_io.en,
     "IF: fetch pc=0x%x 0x%x\n",
@@ -65,10 +69,14 @@ class Core(coreConfig: CoreConfig) extends Module {
     idu.io.out.alu.op2
   )
 
-  exu.io.in.valid := RegNext(idu.io.out.valid, false.B)
-  exu.io.in.predicted_pc := RegNext(idu.io.out.predicted_pc)
-  exu.io.in.alu := RegNext(idu.io.out.alu)
-  exu.io.in.write_back := RegNext(idu.io.out.write_back)
+  id_ex.io.in <> idu.io.out
+  id_ex.io.out_ready := ex_mem.io.in_ready
+
+  exu.io.in.valid := id_ex.io.out.valid
+  exu.io.in.predicted_pc := id_ex.io.out.predicted_pc
+  exu.io.in.alu := id_ex.io.out.alu
+  exu.io.in.mem := id_ex.io.out.mem
+  exu.io.in.write_back := id_ex.io.out.write_back
   idu.io.forward0 <> exu.io.out.write_back
   Debug(
     exu.io.in.valid,
@@ -85,11 +93,18 @@ class Core(coreConfig: CoreConfig) extends Module {
     exu.io.out.write_back.data
   )
 
-  wbu.io.in.valid := RegNext(exu.io.out.valid, false.B)
-  val wbu_write_back = RegNext(exu.io.out.write_back)
-  wbu.io.in.write_back := wbu_write_back
+  ex_mem.io.in := exu.io.out
+  ex_mem.io.out_ready := true.B
+
+  memu.io.in.valid := ex_mem.io.out.valid
+  memu.io.in.mem := ex_mem.io.out.mem
+  memu.io.in.write_back := ex_mem.io.out.write_back
+  memu.io.out.mem <> mem.io.rwport
+  
+  wbu.io.in.valid := ex_mem.io.out.valid
+  wbu.io.in.write_back := memu.io.out.write_back
   wbu.io.reg_io <> regs.io.wport
-  idu.io.forward1 <> wbu_write_back
+  idu.io.forward1 <> ex_mem.io.out.write_back
 
   if (coreConfig.DebugPin) {
     io.debug.get.reg := regs.io.debug.get.reg
