@@ -62,7 +62,7 @@ class Core(coreConfig: CoreConfig) extends Module {
     idu.io.out.predicted_pc,
     idu.io.out.ex.fn,
     idu.io.out.ex.rs1,
-    idu.io.out.ex.rs1,
+    idu.io.out.ex.rs2,
     idu.io.out.mem.en,
     idu.io.out.mem.rw,
     idu.io.out.write_back.rd
@@ -109,7 +109,13 @@ class Core(coreConfig: CoreConfig) extends Module {
     memu.io.in.mem.addr,
     memu.io.in.mem.wdata
   )
-  // Debug(memu.io.out.is_mem, "MEM read data %x\n", memu.io.out.rdata)
+  // Debug(
+  //   "MEM %x read %x, mask %x, write %x\n",
+  //   mem.io.rwport.addr << 3,
+  //   mem.io.rwport.rdata.reverse.foldLeft(0.U(1.W))(Cat(_, _)),
+  //   mem.io.rwport.wmask.reverse.foldLeft(0.U(1.W))(Cat(_, _)),
+  //   mem.io.rwport.wdata.reverse.foldLeft(0.U(1.W))(Cat(_, _))
+  // )
 
   mem_wb.io.in := memu.io.out
   mem_wb.io.stall := ex_mem.io.in_ready

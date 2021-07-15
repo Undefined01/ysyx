@@ -16,6 +16,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
         val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
         val op1 = Input(UInt(coreConfig.XLEN.W))
         val op2 = Input(UInt(coreConfig.XLEN.W))
+        val mem_rs = Input(UInt(coreConfig.RegAddrWidth.W))
       }
       val mem = new Bundle {
         val en = Input(Bool())
@@ -38,6 +39,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
         val rs2 = Output(UInt(coreConfig.RegAddrWidth.W))
         val op1 = Output(UInt(coreConfig.XLEN.W))
         val op2 = Output(UInt(coreConfig.XLEN.W))
+        val mem_rs = Output(UInt(coreConfig.RegAddrWidth.W))
       }
       val mem = new Bundle {
         val en = Output(Bool())
@@ -60,6 +62,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
   io.out.ex.rs2 := RegEnable(io.in.ex.rs2, io.out_ready)
   io.out.ex.op1 := RegEnable(io.in.ex.op1, io.out_ready)
   io.out.ex.op2 := RegEnable(io.in.ex.op2, io.out_ready)
+  io.out.ex.mem_rs := RegEnable(io.in.ex.mem_rs, io.out_ready)
   io.out.mem.en := RegEnable(io.in.mem.en, io.out_ready)
   io.out.mem.rw := RegEnable(io.in.mem.rw, io.out_ready)
   io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, io.out_ready)

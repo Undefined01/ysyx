@@ -105,6 +105,7 @@ class EX(coreConfig: CoreConfig) extends Module {
         val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
         val op1 = Input(UInt(coreConfig.XLEN.W))
         val op2 = Input(UInt(coreConfig.XLEN.W))
+        val mem_rs = Input(UInt(coreConfig.RegAddrWidth.W))
       }
     }
 
@@ -133,24 +134,22 @@ class EX(coreConfig: CoreConfig) extends Module {
     }
   })
 
+  def handleForwarding(reg: UInt, data: UInt): UInt = {
+    val res = WireDefault(data)
+    when(reg =/= 0.U) {
+      when(reg === io.forward(0).rd) {
+        res := io.forward(0).data
+      }.elsewhen(io.in.ex.rs1 === io.forward(1).rd) {
+        res := io.forward(1).data
+      }
+    }
+    res
+  }
+
   val alu = Module(new Alu(coreConfig))
   alu.io.in.fn := io.in.ex.fn
-  alu.io.in.op1 := io.in.ex.op1
-  when(io.in.ex.rs1 =/= 0.U) {
-    when(io.in.ex.rs1 === io.forward(0).rd) {
-      alu.io.in.op1 := io.forward(0).data
-    }.elsewhen(io.in.ex.rs1 === io.forward(1).rd) {
-      alu.io.in.op1 := io.forward(1).data
-    }
-  }
-  alu.io.in.op2 := io.in.ex.op2
-  when(io.in.ex.rs2 =/= 0.U) {
-    when(io.in.ex.rs2 === io.forward(0).rd) {
-      alu.io.in.op2 := io.forward(0).data
-    }.elsewhen(io.in.ex.rs2 === io.forward(1).rd) {
-      alu.io.in.op2 := io.forward(1).data
-    }
-  }
+  alu.io.in.op1 := handleForwarding(io.in.ex.rs1, io.in.ex.op1)
+  alu.io.in.op2 := handleForwarding(io.in.ex.rs2, io.in.ex.op2)
   // Debug(
   //   io.in.valid,
   //   "EX fn=%d %d=%x %d=%x ; %x %x\n",
@@ -169,8 +168,8 @@ class EX(coreConfig: CoreConfig) extends Module {
   io.out.mem.rw := io.in.mem.rw
   io.out.mem.unsigned := io.in.mem.unsigned
   io.out.mem.wWidth := io.in.mem.wWidth
-  io.out.mem.wdata := io.in.mem.wdata
   io.out.mem.addr := alu.io.out
+  io.out.mem.wdata := handleForwarding(io.in.ex.mem_rs, io.in.mem.wdata)
 
   io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := alu.io.out

@@ -33,6 +33,7 @@ class ID(coreConfig: CoreConfig) extends Module {
         val rs2 = Output(UInt(coreConfig.RegAddrWidth.W))
         val op1 = Output(UInt(coreConfig.XLEN.W))
         val op2 = Output(UInt(coreConfig.XLEN.W))
+        val mem_rs = Output(UInt(coreConfig.RegAddrWidth.W))
       }
       val mem = new Bundle {
         val en = Output(Bool())
@@ -76,6 +77,7 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   io.out.valid := io.in.valid
   io.out.ex := DontCare
+  io.out.ex.mem_rs := rs2
   io.out.mem.en := false.B
   io.out.mem.rw := DontCare
   io.out.mem.unsigned := funct3(2).asBool
