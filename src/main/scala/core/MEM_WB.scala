@@ -7,8 +7,8 @@ import utils.Logger.Debug
 
 class MEM_WB(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
+    val stall = Input(Bool())
     val in = new Bundle {
-      val is_mem = Input(Bool())
       val rdata = Input(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
@@ -23,8 +23,6 @@ class MEM_WB(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  io.out.write_back.rd := RegNext(io.in.write_back.rd, 0.U)
-  val is_mem = RegNext(io.in.is_mem)
-  val wb_data = RegNext(io.in.write_back.data)
-  io.out.write_back.data := Mux(is_mem, io.in.rdata, wb_data)
+  io.out.write_back.rd := RegEnable(io.in.write_back.rd, 0.U, io.stall)
+  io.out.write_back.data := RegEnable(io.in.write_back.data, io.stall)
 }

@@ -41,12 +41,12 @@ class Core(coreConfig: CoreConfig) extends Module {
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
   ifu.io.out_ready := id_ex.io.in_ready
-  Debug(
-    ifu.io.if_io.en,
-    "IF: fetch pc=0x%x 0x%x\n",
-    ifu.io.if_io.addr,
-    ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
-  )
+  // Debug(
+  //   ifu.io.if_io.en,
+  //   "IF: fetch pc=0x%x 0x%x\n",
+  //   ifu.io.if_io.addr,
+  //   ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
+  // )
 
   idu.io.in.valid := ifu.io.out.valid
   idu.io.in.pc := ifu.io.out.pc
@@ -96,7 +96,8 @@ class Core(coreConfig: CoreConfig) extends Module {
 
   ex_mem.io.in := exu.io.out
   exu.io.forward(0) <> ex_mem.io.out.write_back
-  
+  ex_mem.io.out.mem_rdata := memu.io.out.rdata
+
   memu.io.in.mem := ex_mem.io.out.mem
   memu.io.in.write_back := ex_mem.io.out.write_back
   memu.io.mem <> mem.io.rwport
@@ -106,11 +107,12 @@ class Core(coreConfig: CoreConfig) extends Module {
     memu.io.in.mem.rw,
     memu.io.in.mem.wWidth,
     memu.io.in.mem.addr,
-    memu.io.in.mem.wdata,
+    memu.io.in.mem.wdata
   )
-  Debug("MEM read data %x\n", memu.io.out.rdata)
+  // Debug(memu.io.out.is_mem, "MEM read data %x\n", memu.io.out.rdata)
 
   mem_wb.io.in := memu.io.out
+  mem_wb.io.stall := ex_mem.io.in_ready
 
   regs.io.wport.wen := true.B
   regs.io.wport.waddr := mem_wb.io.out.write_back.rd
@@ -120,7 +122,7 @@ class Core(coreConfig: CoreConfig) extends Module {
     mem_wb.io.out.write_back.rd =/= 0.U,
     "WB in: reg%d=%x\n",
     mem_wb.io.out.write_back.rd,
-    mem_wb.io.out.write_back.data,
+    mem_wb.io.out.write_back.data
   )
 
   if (coreConfig.DebugPin) {

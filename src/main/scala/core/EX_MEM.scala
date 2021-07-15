@@ -33,6 +33,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
         val addr = Output(UInt(coreConfig.XLEN.W))
         val wdata = Output(UInt(coreConfig.XLEN.W))
       }
+      val mem_rdata = Input(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
         val data = Output(UInt(coreConfig.XLEN.W))
@@ -40,20 +41,20 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  val state = RegInit(0.U)
+  val state = RegInit(0.U(1.W))
 
-  io.out.valid := RegNext(io.in.valid, false.B)
+  io.out.valid := RegEnable(io.in.valid, false.B, io.in_ready)
 
-  io.out.mem.en := RegNext(io.in.mem.en, false.B)
-  io.out.mem.rw := RegNext(io.in.mem.rw)
-  io.out.mem.unsigned := RegNext(io.in.mem.unsigned)
-  io.out.mem.wWidth := RegNext(io.in.mem.wWidth)
-  io.out.mem.addr := RegNext(io.in.mem.addr)
-  io.out.mem.wdata := RegNext(io.in.mem.wdata)
+  io.out.mem.en := RegEnable(io.in.mem.en, false.B, io.in_ready)
+  io.out.mem.rw := RegEnable(io.in.mem.rw, io.in_ready)
+  io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, io.in_ready)
+  io.out.mem.wWidth := RegEnable(io.in.mem.wWidth, io.in_ready)
+  io.out.mem.addr := RegEnable(io.in.mem.addr, io.in_ready)
+  io.out.mem.wdata := RegEnable(io.in.mem.wdata, io.in_ready)
 
   io.out.write_back.rd :=
-    RegNext(Mux(io.in.valid, io.in.write_back.rd, 0.U), 0.U)
-  io.out.write_back.data := RegNext(io.in.write_back.data)
+    RegEnable(Mux(io.in.valid, io.in.write_back.rd, 0.U), 0.U, io.in_ready)
+  io.out.write_back.data := RegEnable(io.in.write_back.data, io.in_ready)
 
   io.in_ready := true.B
   switch(state) {
@@ -65,6 +66,8 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
     }
     is(1.U) {
       state := 0.U
+      io.out.mem.en := false.B
+      io.out.write_back.data := io.out.mem_rdata
     }
   }
 }

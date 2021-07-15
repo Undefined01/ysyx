@@ -23,7 +23,6 @@ class MEM(coreConfig: CoreConfig) extends Module {
     val mem =
       Flipped(new Memory.ReadWritePort(coreConfig.XLEN, coreConfig.XLEN / 8))
     val out = new Bundle {
-      val is_mem = Output(Bool())
       val rdata = Output(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
@@ -47,7 +46,6 @@ class MEM(coreConfig: CoreConfig) extends Module {
   io.mem.wmask := mem_driver.io.mem_ctrl.wmask
   io.mem.wdata := mem_driver.io.mem_ctrl.wdata
 
-  io.out.is_mem := io.in.mem.en
   io.out.rdata := mem_driver.io.out.rdata
   io.out.write_back := io.in.write_back
 }

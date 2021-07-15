@@ -151,17 +151,17 @@ class EX(coreConfig: CoreConfig) extends Module {
       alu.io.in.op2 := io.forward(1).data
     }
   }
-  Debug(
-    io.in.valid,
-    "EX fn=%d %d=%x %d=%x ; %x %x\n",
-    alu.io.in.fn,
-    io.in.ex.rs1,
-    io.in.ex.op1,
-    io.in.ex.rs2,
-    io.in.ex.op2,
-    alu.io.in.op1,
-    alu.io.in.op2
-  )
+  // Debug(
+  //   io.in.valid,
+  //   "EX fn=%d %d=%x %d=%x ; %x %x\n",
+  //   alu.io.in.fn,
+  //   io.in.ex.rs1,
+  //   io.in.ex.op1,
+  //   io.in.ex.rs2,
+  //   io.in.ex.op2,
+  //   alu.io.in.op1,
+  //   alu.io.in.op2
+  // )
 
   io.out.valid := io.in.valid
 
