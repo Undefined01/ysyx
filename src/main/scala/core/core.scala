@@ -25,9 +25,9 @@ class Core(coreConfig: CoreConfig) extends Module {
   )
 
   val pc = Wire(UInt(coreConfig.XLEN.W))
-  pc := coreConfig.InitialPC.U
 
   val regs = Module(new RegFile(coreConfig))
+
   val ifu = Module(new IF(coreConfig))
   val idu = Module(new ID(coreConfig))
   val id_ex = Module(new ID_EX(coreConfig))
@@ -37,10 +37,21 @@ class Core(coreConfig: CoreConfig) extends Module {
   val mem_wb = Module(new MEM_WB(coreConfig))
   // val wbu = Module(new WB(coreConfig))
 
+  val stall = Wire(Bool())
+  val flush = Wire(Bool())
+
+  pc := coreConfig.InitialPC.U
+  when(ifu.io.out.valid) {
+    pc := idu.io.out.predicted_pc
+  }
+
+  stall := ex_mem.io.stall
+  flush := false.B
+
   Debug("-----------------------------------\n")
+  ifu.io.stall := stall
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
-  ifu.io.out_ready := id_ex.io.in_ready
   // Debug(
   //   ifu.io.if_io.en,
   //   "IF: fetch pc=0x%x 0x%x\n",
@@ -51,9 +62,6 @@ class Core(coreConfig: CoreConfig) extends Module {
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
   idu.io.reg_io <> regs.io.rport
-  when(ifu.io.out.valid) {
-    pc := idu.io.out.predicted_pc
-  }
   Debug(ifu.io.out.valid, "ID in: pc=0x%x 0x%x\n", idu.io.in.pc, idu.io.in.instr)
   Debug(
     ifu.io.out.valid,
@@ -67,9 +75,9 @@ class Core(coreConfig: CoreConfig) extends Module {
     idu.io.out.write_back.rd
   )
 
+  id_ex.io.stall := stall
   id_ex.io.in_valid := ifu.io.out.valid
   id_ex.io.in := idu.io.out
-  id_ex.io.out_ready := ex_mem.io.in_ready
 
   exu.io.in.valid := id_ex.io.out.valid
   exu.io.in.predicted_pc := id_ex.io.out.predicted_pc
@@ -94,6 +102,7 @@ class Core(coreConfig: CoreConfig) extends Module {
     exu.io.out.write_back.data
   )
 
+  // ex_mem.io.stall := stall
   ex_mem.io.in := exu.io.out
   exu.io.forward(0) <> ex_mem.io.out.write_back
   ex_mem.io.out.mem_rdata := memu.io.out.rdata
@@ -117,8 +126,8 @@ class Core(coreConfig: CoreConfig) extends Module {
   //   mem.io.rwport.wdata.reverse.foldLeft(0.U(1.W))(Cat(_, _))
   // )
 
+  mem_wb.io.stall := stall
   mem_wb.io.in := memu.io.out
-  mem_wb.io.stall := ex_mem.io.in_ready
 
   regs.io.wport.wen := true.B
   regs.io.wport.waddr := mem_wb.io.out.write_back.rd

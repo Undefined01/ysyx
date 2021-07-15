@@ -8,6 +8,7 @@ import utils.Logger.Debug
 class MEM_WB(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Input(Bool())
+
     val in = new Bundle {
       val rdata = Input(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
@@ -15,6 +16,7 @@ class MEM_WB(coreConfig: CoreConfig) extends Module {
         val data = Input(UInt(coreConfig.XLEN.W))
       }
     }
+    
     val out = new Bundle {
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))

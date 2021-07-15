@@ -7,7 +7,8 @@ import utils.Logger.Debug
 
 class EX_MEM(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
-    val in_ready = Output(Bool())
+    val stall = Output(Bool())
+    
     val in = new Bundle {
       val valid = Input(Bool())
       val mem = new Bundle {
@@ -43,25 +44,25 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
 
   val state = RegInit(0.U(1.W))
 
-  io.out.valid := RegEnable(io.in.valid, false.B, io.in_ready)
+  io.out.valid := RegEnable(io.in.valid, false.B, io.stall)
 
-  io.out.mem.en := RegEnable(io.in.mem.en, false.B, io.in_ready)
-  io.out.mem.rw := RegEnable(io.in.mem.rw, io.in_ready)
-  io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, io.in_ready)
-  io.out.mem.wWidth := RegEnable(io.in.mem.wWidth, io.in_ready)
-  io.out.mem.addr := RegEnable(io.in.mem.addr, io.in_ready)
-  io.out.mem.wdata := RegEnable(io.in.mem.wdata, io.in_ready)
+  io.out.mem.en := RegEnable(io.in.mem.en, false.B, io.stall)
+  io.out.mem.rw := RegEnable(io.in.mem.rw, io.stall)
+  io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, io.stall)
+  io.out.mem.wWidth := RegEnable(io.in.mem.wWidth, io.stall)
+  io.out.mem.addr := RegEnable(io.in.mem.addr, io.stall)
+  io.out.mem.wdata := RegEnable(io.in.mem.wdata, io.stall)
 
   io.out.write_back.rd :=
-    RegEnable(Mux(io.in.valid, io.in.write_back.rd, 0.U), 0.U, io.in_ready)
-  io.out.write_back.data := RegEnable(io.in.write_back.data, io.in_ready)
+    RegEnable(Mux(io.in.valid, io.in.write_back.rd, 0.U), 0.U, io.stall)
+  io.out.write_back.data := RegEnable(io.in.write_back.data, io.stall)
 
-  io.in_ready := true.B
+  io.stall := true.B
   switch(state) {
     is(0.U) {
       when(io.out.mem.en === true.B && io.out.mem.rw === false.B) {
         state := 1.U
-        io.in_ready := false.B
+        io.stall := false.B
       }
     }
     is(1.U) {
