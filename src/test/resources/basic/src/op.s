@@ -11,5 +11,10 @@ and x6, x4, x3
 or x7, x4, x3
 xor x8, x3, x4
 xor x8, x8, x2
-slt x9, x7, x2
-sltu x9, x7, x2
+slt x9, x7, x6
+sltu x11, x7, x6
+addi x10, x2, 0
+add x10, x10, x10
+add x10, x10, x10
+add x10, x10, x10
+add x10, x10, x10

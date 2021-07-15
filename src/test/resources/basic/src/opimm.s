@@ -1,8 +1,6 @@
 .include "common.h"
 
-addi x1, x0, 20
-addi x1, x1, 20
-addi x1, x1, 0x20
+li x1, 72
 addi x2, x1, -8
 addi x0, x1, 100
 addi x3, x0, 1194
