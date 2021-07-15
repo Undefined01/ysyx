@@ -10,7 +10,7 @@ lbu x7, %lo(a)(x0)
 lb x8, %lo(b)(x0)
 lbu x9, %lo(b)(x0)
 li x10, %lo(a)
-lh x11, 0xc(x10)
+lh x11, 0x6(x10)
 lh x10, 0x4(x10)
 ld x12, %lo(a)(x0)
 
