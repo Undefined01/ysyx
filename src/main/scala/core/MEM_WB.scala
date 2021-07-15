@@ -16,7 +16,7 @@ class MEM_WB(coreConfig: CoreConfig) extends Module {
         val data = Input(UInt(coreConfig.XLEN.W))
       }
     }
-    
+
     val out = new Bundle {
       val write_back = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
@@ -25,6 +25,6 @@ class MEM_WB(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  io.out.write_back.rd := RegEnable(io.in.write_back.rd, 0.U, io.stall)
-  io.out.write_back.data := RegEnable(io.in.write_back.data, io.stall)
+  io.out.write_back.rd := RegEnable(io.in.write_back.rd, 0.U, !io.stall)
+  io.out.write_back.data := RegEnable(io.in.write_back.data, !io.stall)
 }

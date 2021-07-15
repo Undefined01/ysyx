@@ -89,10 +89,11 @@ class Alu(coreConfig: CoreConfig) extends Module {
 class EX(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
-      val valid = Input(Bool())
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Input(UInt(AluFn.bits.W))
+        val is_jump = Input(Bool())
+        val is_branch = Input(Bool())
         val use_imm = Input(Bool())
         val rs1 = Input(UInt(coreConfig.RegAddrWidth.W))
         val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
@@ -120,7 +121,8 @@ class EX(coreConfig: CoreConfig) extends Module {
     )
 
     val out = new Bundle {
-      val valid = Output(Bool())
+      val prediction_failure = Output(Bool())
+      val jump_pc = Output(UInt(coreConfig.XLEN.W))
       val mem = new Bundle {
         val en = Output(Bool())
         val rw = Output(Bool())
@@ -154,19 +156,16 @@ class EX(coreConfig: CoreConfig) extends Module {
   val rop2 = handleForwarding(io.in.ex.rs2, io.in.ex.op2)
   alu.io.in.op1 := rop1
   alu.io.in.op2 := Mux(io.in.ex.use_imm, io.in.ex.imm, rop2)
-  Debug(
-    io.in.valid,
-    "EX fn=%d %d=%x %d=%x ; %x %x\n",
-    alu.io.in.fn,
-    io.in.ex.rs1,
-    io.in.ex.op1,
-    io.in.ex.rs2,
-    io.in.ex.op2,
-    alu.io.in.op1,
-    alu.io.in.op2
-  )
-
-  io.out.valid := io.in.valid
+  // Debug(
+  //   "EX fn=%d %d=%x %d=%x ; %x %x\n",
+  //   alu.io.in.fn,
+  //   io.in.ex.rs1,
+  //   io.in.ex.op1,
+  //   io.in.ex.rs2,
+  //   io.in.ex.op2,
+  //   alu.io.in.op1,
+  //   alu.io.in.op2
+  // )
 
   io.out.mem.en := io.in.mem.en
   io.out.mem.rw := io.in.mem.rw
@@ -177,4 +176,13 @@ class EX(coreConfig: CoreConfig) extends Module {
 
   io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := alu.io.out
+
+  io.out.prediction_failure := false.B
+  io.out.jump_pc := alu.io.out
+  when (io.in.ex.is_jump) {
+    io.out.write_back.data := io.in.ex.imm
+    when(io.in.predicted_pc =/= io.out.jump_pc) {
+      io.out.prediction_failure := true.B
+    }
+  }
 }

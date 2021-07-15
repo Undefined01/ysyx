@@ -63,5 +63,6 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
     runTestCase("opimm")
     runTestCase("op")
     runTestCase("ldst")
+    runTestCase("jump")
   }
 }

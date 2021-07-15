@@ -40,29 +40,39 @@ class Core(coreConfig: CoreConfig) extends Module {
   val stall = Wire(Bool())
   val flush = Wire(Bool())
 
+  Debug("-----------------------------------\n")
+
   pc := coreConfig.InitialPC.U
   when(ifu.io.out.valid) {
     pc := idu.io.out.predicted_pc
   }
 
   stall := ex_mem.io.stall
-  flush := false.B
+  flush := exu.io.out.prediction_failure
 
-  Debug("-----------------------------------\n")
+  Debug(stall, "!!!STALL!!!")
+  Debug(flush, "!!!FLUSH!!!")
+
   ifu.io.stall := stall
+  ifu.io.flush := flush
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
-  // Debug(
-  //   ifu.io.if_io.en,
-  //   "IF: fetch pc=0x%x 0x%x\n",
-  //   ifu.io.if_io.addr,
-  //   ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
-  // )
+  Debug(
+    ifu.io.if_io.en,
+    "IF: fetch pc=0x%x 0x%x\n",
+    ifu.io.if_io.addr,
+    ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
+  )
 
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
   idu.io.reg_io <> regs.io.rport
-  Debug(ifu.io.out.valid, "ID in: pc=0x%x 0x%x\n", idu.io.in.pc, idu.io.in.instr)
+  Debug(
+    ifu.io.out.valid,
+    "ID in: pc=0x%x 0x%x\n",
+    idu.io.in.pc,
+    idu.io.in.instr
+  )
   Debug(
     ifu.io.out.valid,
     "ID out: predicted_pc=0x%x fn=%d rs1=%d rs2=%d mem=%d%d wb=%d\n",
@@ -79,13 +89,12 @@ class Core(coreConfig: CoreConfig) extends Module {
   id_ex.io.in_valid := ifu.io.out.valid
   id_ex.io.in := idu.io.out
 
-  exu.io.in.valid := id_ex.io.out.valid
   exu.io.in.predicted_pc := id_ex.io.out.predicted_pc
   exu.io.in.ex := id_ex.io.out.ex
   exu.io.in.mem := id_ex.io.out.mem
   exu.io.in.write_back := id_ex.io.out.write_back
   Debug(
-    exu.io.in.valid,
+    id_ex.io.out_valid,
     "EX in: predicted_pc=0x%x fn=%d rs1=%d rs2=%d\n",
     exu.io.in.predicted_pc,
     exu.io.in.ex.fn,
@@ -93,7 +102,7 @@ class Core(coreConfig: CoreConfig) extends Module {
     exu.io.in.ex.rs2
   )
   Debug(
-    exu.io.in.valid,
+    id_ex.io.out_valid,
     "EX out: mem=%d%d %x; write %d=0x%x\n",
     exu.io.out.mem.en,
     exu.io.out.mem.rw,
@@ -103,6 +112,7 @@ class Core(coreConfig: CoreConfig) extends Module {
   )
 
   // ex_mem.io.stall := stall
+  ex_mem.io.in_valid := id_ex.io.out_valid
   ex_mem.io.in := exu.io.out
   exu.io.forward(0) <> ex_mem.io.out.write_back
   ex_mem.io.out.mem_rdata := memu.io.out.rdata

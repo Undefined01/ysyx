@@ -30,6 +30,8 @@ class ID(coreConfig: CoreConfig) extends Module {
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Output(UInt(AluFn.bits.W))
+        val is_jump = Output(Bool())
+        val is_branch = Output(Bool())
         val use_imm = Output(Bool())
         val rs1 = Output(UInt(coreConfig.RegAddrWidth.W))
         val rs2 = Output(UInt(coreConfig.RegAddrWidth.W))
@@ -85,10 +87,10 @@ class ID(coreConfig: CoreConfig) extends Module {
     io.out.ex.imm := S_imm
   }
   def J_type() = {
-    io.out.ex.rs1 := 0.U
-    io.out.ex.op1 := io.in.pc
-    io.out.ex.use_imm := true.B
-    io.out.ex.imm := J_imm
+    io.out.ex.use_imm := false.B
+    io.out.ex.rs2 := 0.U
+    io.out.ex.op2 := J_imm
+    io.out.ex.imm := io.in.pc + 4.U
     io.out.write_back.rd := rd
   }
 
@@ -100,6 +102,9 @@ class ID(coreConfig: CoreConfig) extends Module {
   io.out.ex.rs2 := rs2
   io.out.ex.op1 := io.reg_io.rdata(0)
   io.out.ex.op2 := io.reg_io.rdata(1)
+  io.out.ex.is_jump := false.B
+  io.out.ex.is_branch := false.B
+
   io.out.mem.en := false.B
   io.out.mem.rw := DontCare
   io.out.mem.unsigned := funct3(2).asBool
@@ -110,28 +115,36 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   switch(opcode) {
     is(DecodeConstant.OpImm.U) {
-      io.out.ex.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
       I_type()
+      io.out.ex.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
     }
     is(DecodeConstant.Op.U) {
-      io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
       R_type()
+      io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
     }
     is(DecodeConstant.Load.U) {
-      io.out.ex.fn := AluFn.ADD.U
       I_type()
+      io.out.ex.fn := AluFn.ADD.U
       io.out.mem.en := true.B
       io.out.mem.rw := false.B
     }
     is(DecodeConstant.Store.U) {
-      io.out.ex.fn := AluFn.ADD.U
       S_type()
+      io.out.ex.fn := AluFn.ADD.U
       io.out.mem.en := true.B
       io.out.mem.rw := true.B
     }
     is(DecodeConstant.Jal.U) {
-      io.out.ex.fn := AluFn.JUMP.U
       J_type()
+      io.out.ex.rs1 := 0.U
+      io.out.ex.op1 := io.in.pc
+      io.out.ex.fn := AluFn.ADD.U
+      io.out.ex.is_jump := true.B
+    }
+    is(DecodeConstant.Jalr.U) {
+      J_type()
+      io.out.ex.fn := AluFn.ADD.U
+      io.out.ex.is_jump := true.B
     }
   }
 }
