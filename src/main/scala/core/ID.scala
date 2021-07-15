@@ -24,21 +24,16 @@ class ID(coreConfig: CoreConfig) extends Module {
       val rdata = Input(Vec(2, UInt(coreConfig.XLEN.W)))
     }
 
-    val forward0 =
-      new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-        val data = Input(UInt(coreConfig.XLEN.W))
-      }
-    val forward1 =
-      new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-        val data = Input(UInt(coreConfig.XLEN.W))
-      }
-
     val out = new Bundle {
       val valid = Output(Bool())
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
-      val alu = new AluInput(coreConfig)
+      val ex = new Bundle {
+        val fn = Output(UInt(AluFn.bits.W))
+        val rs1 = Output(UInt(coreConfig.RegAddrWidth.W))
+        val rs2 = Output(UInt(coreConfig.RegAddrWidth.W))
+        val op1 = Output(UInt(coreConfig.XLEN.W))
+        val op2 = Output(UInt(coreConfig.XLEN.W))
+      }
       val mem = new Bundle {
         val en = Output(Bool())
         val rw = Output(Bool())
@@ -76,27 +71,11 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   io.reg_io.raddr(0) := rs1
   io.reg_io.raddr(1) := rs2
-  val rop1 = Wire(UInt(coreConfig.XLEN.W))
-  rop1 := io.reg_io.rdata(0)
-  when(rs1 =/= 0.U) {
-    when(rs1 === io.forward0.rd) {
-      rop1 := io.forward0.data
-    }.elsewhen(rs1 === io.forward1.rd) {
-      rop1 := io.forward1.data
-    }
-  }
-  val rop2 = Wire(UInt(coreConfig.XLEN.W))
-  rop2 := io.reg_io.rdata(1)
-  when(rs2 =/= 0.U) {
-    when(rs2 === io.forward0.rd) {
-      rop2 := io.forward0.data
-    }.elsewhen(rs2 === io.forward1.rd) {
-      rop2 := io.forward1.data
-    }
-  }
+  val rop1 = io.reg_io.rdata(0)
+  val rop2 = io.reg_io.rdata(1)
 
   io.out.valid := io.in.valid
-  io.out.alu := DontCare
+  io.out.ex := DontCare
   io.out.mem.en := false.B
   io.out.mem.rw := DontCare
   io.out.mem.unsigned := funct3(2).asBool
@@ -108,29 +87,37 @@ class ID(coreConfig: CoreConfig) extends Module {
 
   switch(opcode) {
     is(DecodeConstant.OpImm.U) {
-      io.out.alu.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
-      io.out.alu.op1 := rop1
-      io.out.alu.op2 := I_imm
+      io.out.ex.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
+      io.out.ex.rs1 := rs1
+      io.out.ex.rs2 := 0.U
+      io.out.ex.op1 := rop1
+      io.out.ex.op2 := I_imm
       io.out.write_back.rd := rd
     }
     is(DecodeConstant.Op.U) {
-      io.out.alu.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
-      io.out.alu.op1 := rop1
-      io.out.alu.op2 := rop2
+      io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
+      io.out.ex.rs1 := rs1
+      io.out.ex.rs2 := rs2
+      io.out.ex.op1 := rop1
+      io.out.ex.op2 := rop2
       io.out.write_back.rd := rd
     }
     is(DecodeConstant.Load.U) {
-      io.out.alu.fn := AluFn.ADD.U
-      io.out.alu.op1 := rop1
-      io.out.alu.op2 := I_imm
+      io.out.ex.fn := AluFn.ADD.U
+      io.out.ex.rs1 := rs1
+      io.out.ex.rs2 := 0.U
+      io.out.ex.op1 := rop1
+      io.out.ex.op2 := I_imm
       io.out.write_back.rd := rd
       io.out.mem.en := true.B
       io.out.mem.rw := false.B
     }
     is(DecodeConstant.Store.U) {
-      io.out.alu.fn := AluFn.ADD.U
-      io.out.alu.op1 := rop1
-      io.out.alu.op2 := S_imm
+      io.out.ex.fn := AluFn.ADD.U
+      io.out.ex.rs1 := rs1
+      io.out.ex.rs2 := 0.U
+      io.out.ex.op1 := rop1
+      io.out.ex.op2 := S_imm
       io.out.mem.en := true.B
       io.out.mem.rw := true.B
     }

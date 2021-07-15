@@ -3,6 +3,7 @@ package core
 import chisel3._
 import chisel3.util._
 import utils._
+import utils.Logger.Debug
 
 object AluFn {
   val ADD = 0
@@ -23,19 +24,17 @@ object AluFn {
   val bits = 4
 }
 
-class AluInput(coreConfig: CoreConfig) extends Bundle {
-  val fn = Output(UInt(AluFn.bits.W))
-  val op1 = Output(UInt(coreConfig.XLEN.W))
-  val op2 = Output(UInt(coreConfig.XLEN.W))
-}
-
 class Alu(coreConfig: CoreConfig) extends Module {
   require(coreConfig.XLEN == 32 || coreConfig.XLEN == 64)
   private val shift_op2_len = coreConfig.XLEN match {
     case 32 => 5; case 64 => 6
   }
   val io = IO(new Bundle {
-    val in = Flipped(new AluInput(coreConfig))
+    val in = new Bundle {
+      val fn = Input(UInt(AluFn.bits.W))
+      val op1 = Input(UInt(coreConfig.XLEN.W))
+      val op2 = Input(UInt(coreConfig.XLEN.W))
+    }
     val out = Output(UInt(coreConfig.XLEN.W))
   })
 
@@ -100,8 +99,23 @@ class EX(coreConfig: CoreConfig) extends Module {
       val write_back = new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
       }
-      val alu = Flipped(new AluInput(coreConfig))
+      val ex = new Bundle {
+        val fn = Input(UInt(AluFn.bits.W))
+        val rs1 = Input(UInt(coreConfig.RegAddrWidth.W))
+        val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
+        val op1 = Input(UInt(coreConfig.XLEN.W))
+        val op2 = Input(UInt(coreConfig.XLEN.W))
+      }
     }
+
+    val forward = Vec(
+      2,
+      new Bundle {
+        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
+        val data = Input(UInt(coreConfig.XLEN.W))
+      }
+    )
+
     val out = new Bundle {
       val valid = Output(Bool())
       val mem = new Bundle {
@@ -120,7 +134,34 @@ class EX(coreConfig: CoreConfig) extends Module {
   })
 
   val alu = Module(new Alu(coreConfig))
-  alu.io.in <> io.in.alu
+  alu.io.in.fn := io.in.ex.fn
+  alu.io.in.op1 := io.in.ex.op1
+  when(io.in.ex.rs1 =/= 0.U) {
+    when(io.in.ex.rs1 === io.forward(0).rd) {
+      alu.io.in.op1 := io.forward(0).data
+    }.elsewhen(io.in.ex.rs1 === io.forward(1).rd) {
+      alu.io.in.op1 := io.forward(1).data
+    }
+  }
+  alu.io.in.op2 := io.in.ex.op2
+  when(io.in.ex.rs2 =/= 0.U) {
+    when(io.in.ex.rs2 === io.forward(0).rd) {
+      alu.io.in.op2 := io.forward(0).data
+    }.elsewhen(io.in.ex.rs2 === io.forward(1).rd) {
+      alu.io.in.op2 := io.forward(1).data
+    }
+  }
+  Debug(
+    io.in.valid,
+    "EX fn=%d %d=%x %d=%x ; %x %x\n",
+    alu.io.in.fn,
+    io.in.ex.rs1,
+    io.in.ex.op1,
+    io.in.ex.rs2,
+    io.in.ex.op2,
+    alu.io.in.op1,
+    alu.io.in.op2
+  )
 
   io.out.valid := io.in.valid
 
@@ -130,7 +171,7 @@ class EX(coreConfig: CoreConfig) extends Module {
   io.out.mem.wWidth := io.in.mem.wWidth
   io.out.mem.wdata := io.in.mem.wdata
   io.out.mem.addr := alu.io.out
-  
+
   io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := alu.io.out
 }

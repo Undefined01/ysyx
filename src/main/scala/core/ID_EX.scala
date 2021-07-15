@@ -10,7 +10,13 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
     val in = new Bundle {
       val valid = Input(Bool())
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
-      val alu = Flipped(new AluInput(coreConfig))
+      val ex = new Bundle {
+        val fn = Input(UInt(AluFn.bits.W))
+        val rs1 = Input(UInt(coreConfig.RegAddrWidth.W))
+        val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
+        val op1 = Input(UInt(coreConfig.XLEN.W))
+        val op2 = Input(UInt(coreConfig.XLEN.W))
+      }
       val mem = new Bundle {
         val en = Input(Bool())
         val rw = Input(Bool())
@@ -26,7 +32,13 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
     val out = new Bundle {
       val valid = Output(Bool())
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
-      val alu = new AluInput(coreConfig)
+      val ex = new Bundle {
+        val fn = Output(UInt(AluFn.bits.W))
+        val rs1 = Output(UInt(coreConfig.RegAddrWidth.W))
+        val rs2 = Output(UInt(coreConfig.RegAddrWidth.W))
+        val op1 = Output(UInt(coreConfig.XLEN.W))
+        val op2 = Output(UInt(coreConfig.XLEN.W))
+      }
       val mem = new Bundle {
         val en = Output(Bool())
         val rw = Output(Bool())
@@ -43,7 +55,11 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
   io.out.valid := RegEnable(io.in.valid, false.B, io.out_ready)
   io.in_ready := io.out_ready
   io.out.predicted_pc := RegEnable(io.in.predicted_pc, io.out_ready)
-  io.out.alu := RegEnable(io.in.alu, io.out_ready)
+  io.out.ex.fn := RegEnable(io.in.ex.fn, io.out_ready)
+  io.out.ex.rs1 := RegEnable(io.in.ex.rs1, io.out_ready)
+  io.out.ex.rs2 := RegEnable(io.in.ex.rs2, io.out_ready)
+  io.out.ex.op1 := RegEnable(io.in.ex.op1, io.out_ready)
+  io.out.ex.op2 := RegEnable(io.in.ex.op2, io.out_ready)
   io.out.mem.en := RegEnable(io.in.mem.en, io.out_ready)
   io.out.mem.rw := RegEnable(io.in.mem.rw, io.out_ready)
   io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, io.out_ready)

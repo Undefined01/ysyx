@@ -3,6 +3,7 @@ package core
 import chisel3._
 import chisel3.util._
 import utils._
+import utils.Logger.Debug
 
 class EX_MEM(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
@@ -22,7 +23,6 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
         val data = Input(UInt(coreConfig.XLEN.W))
       }
     }
-    val out_ready = Input(Bool())
     val out = new Bundle {
       val valid = Output(Bool())
       val mem = new Bundle {
@@ -40,18 +40,18 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  io.out.valid := RegEnable(io.in.valid, false.B, io.out_ready)
-  io.in_ready := io.out_ready
-  io.out.mem.en := RegEnable(io.in.mem.en, io.out_ready)
-  io.out.mem.rw := RegEnable(io.in.mem.rw, io.out_ready)
-  io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, io.out_ready)
-  io.out.mem.wWidth := RegEnable(io.in.mem.wWidth, io.out_ready)
-  io.out.mem.addr := RegEnable(io.in.mem.addr, io.out_ready)
-  io.out.mem.wdata := RegEnable(io.in.mem.wdata, io.out_ready)
-  io.out.write_back.rd := Mux(
-    io.out.valid,
-    RegEnable(io.in.write_back.rd, io.out_ready),
-    0.U
-  )
-  io.out.write_back.data := RegEnable(io.in.write_back.data, io.out_ready)
+  io.in_ready := true.B
+
+  io.out.valid := RegNext(io.in.valid, false.B)
+
+  io.out.mem.en := RegNext(io.in.mem.en, false.B)
+  io.out.mem.rw := RegNext(io.in.mem.rw)
+  io.out.mem.unsigned := RegNext(io.in.mem.unsigned)
+  io.out.mem.wWidth := RegNext(io.in.mem.wWidth)
+  io.out.mem.addr := RegNext(io.in.mem.addr)
+  io.out.mem.wdata := RegNext(io.in.mem.wdata)
+
+  io.out.write_back.rd :=
+    RegNext(Mux(io.in.valid, io.in.write_back.rd, 0.U), 0.U)
+  io.out.write_back.data := RegNext(io.in.write_back.data)
 }
