@@ -21,7 +21,10 @@ class RegFile(coreConfig: CoreConfig) extends Module {
     else None
   })
 
-  val reg = RegInit(VecInit(Seq.fill(32)(0.U(coreConfig.XLEN.W))))
+  val negClock = (~clock.asUInt).asBool.asClock
+  val reg = withClock(negClock) {
+    RegInit(VecInit(Seq.fill(32)(0.U(coreConfig.XLEN.W))))
+  }
 
   when(io.wport.wen && io.wport.waddr =/= 0.U) {
     reg(io.wport.waddr) := io.wport.wdata
