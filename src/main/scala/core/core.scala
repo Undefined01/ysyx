@@ -42,27 +42,30 @@ class Core(coreConfig: CoreConfig) extends Module {
 
   Debug("-----------------------------------\n")
 
+  stall := ex_mem.io.stall
+  flush := exu.io.out.prediction_failure
+
   pc := coreConfig.InitialPC.U
   when(ifu.io.out.valid) {
     pc := idu.io.out.predicted_pc
   }
+  when(exu.io.out.prediction_failure) {
+    pc := exu.io.out.jump_pc
+  }
 
-  stall := ex_mem.io.stall
-  flush := exu.io.out.prediction_failure
-
-  Debug(stall, "!!!STALL!!!")
-  Debug(flush, "!!!FLUSH!!!")
+  Debug(stall, "!!!STALL!!!\n")
+  Debug(flush, "!!!FLUSH!!!\n")
 
   ifu.io.stall := stall
   ifu.io.flush := flush
   ifu.io.in.pc := pc
   ifu.io.if_io <> mem.io.rport
-  Debug(
-    ifu.io.if_io.en,
-    "IF: fetch pc=0x%x 0x%x\n",
-    ifu.io.if_io.addr,
-    ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
-  )
+  // Debug(
+  //   ifu.io.if_io.en,
+  //   "IF: fetch pc=0x%x 0x%x\n",
+  //   ifu.io.if_io.addr,
+  //   ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
+  // )
 
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
