@@ -48,16 +48,15 @@ class Core(coreConfig: CoreConfig) extends Module {
   //   ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
   // )
 
-  idu.io.in.valid := ifu.io.out.valid
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
   idu.io.reg_io <> regs.io.rport
-  when(idu.io.out.valid) {
+  when(ifu.io.out.valid) {
     pc := idu.io.out.predicted_pc
   }
-  Debug(idu.io.in.valid, "ID in: pc=0x%x 0x%x\n", idu.io.in.pc, idu.io.in.instr)
+  Debug(ifu.io.out.valid, "ID in: pc=0x%x 0x%x\n", idu.io.in.pc, idu.io.in.instr)
   Debug(
-    idu.io.out.valid,
+    ifu.io.out.valid,
     "ID out: predicted_pc=0x%x fn=%d rs1=%d rs2=%d mem=%d%d wb=%d\n",
     idu.io.out.predicted_pc,
     idu.io.out.ex.fn,
@@ -68,7 +67,8 @@ class Core(coreConfig: CoreConfig) extends Module {
     idu.io.out.write_back.rd
   )
 
-  id_ex.io.in <> idu.io.out
+  id_ex.io.in_valid := ifu.io.out.valid
+  id_ex.io.in := idu.io.out
   id_ex.io.out_ready := ex_mem.io.in_ready
 
   exu.io.in.valid := id_ex.io.out.valid

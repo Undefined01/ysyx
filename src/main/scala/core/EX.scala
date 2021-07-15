@@ -16,8 +16,10 @@ object AluFn {
   val SRA = 5 + 8
   val OR = 6
   val AND = 7
-  val SEQ = 1 + 8
-  val SNE = 4 + 8
+
+  val JUMP = 1 + 8
+  val SEQ = 6 + 8
+  val SNE = 7 + 8
   val SGE = 2 + 8
   val SGEU = 3 + 8
 
@@ -89,23 +91,23 @@ class EX(coreConfig: CoreConfig) extends Module {
     val in = new Bundle {
       val valid = Input(Bool())
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
+      val ex = new Bundle {
+        val fn = Input(UInt(AluFn.bits.W))
+        val use_imm = Input(Bool())
+        val rs1 = Input(UInt(coreConfig.RegAddrWidth.W))
+        val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
+        val op1 = Input(UInt(coreConfig.XLEN.W))
+        val op2 = Input(UInt(coreConfig.XLEN.W))
+        val imm = Input(UInt(coreConfig.XLEN.W))
+      }
       val mem = new Bundle {
         val en = Input(Bool())
         val rw = Input(Bool())
         val unsigned = Input(Bool())
         val wWidth = Input(UInt(3.W))
-        val wdata = Input(UInt(coreConfig.XLEN.W))
       }
       val write_back = new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-      }
-      val ex = new Bundle {
-        val fn = Input(UInt(AluFn.bits.W))
-        val rs1 = Input(UInt(coreConfig.RegAddrWidth.W))
-        val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
-        val op1 = Input(UInt(coreConfig.XLEN.W))
-        val op2 = Input(UInt(coreConfig.XLEN.W))
-        val mem_rs = Input(UInt(coreConfig.RegAddrWidth.W))
       }
     }
 
@@ -139,7 +141,7 @@ class EX(coreConfig: CoreConfig) extends Module {
     when(reg =/= 0.U) {
       when(reg === io.forward(0).rd) {
         res := io.forward(0).data
-      }.elsewhen(io.in.ex.rs1 === io.forward(1).rd) {
+      }.elsewhen(reg === io.forward(1).rd) {
         res := io.forward(1).data
       }
     }
@@ -148,19 +150,21 @@ class EX(coreConfig: CoreConfig) extends Module {
 
   val alu = Module(new Alu(coreConfig))
   alu.io.in.fn := io.in.ex.fn
-  alu.io.in.op1 := handleForwarding(io.in.ex.rs1, io.in.ex.op1)
-  alu.io.in.op2 := handleForwarding(io.in.ex.rs2, io.in.ex.op2)
-  // Debug(
-  //   io.in.valid,
-  //   "EX fn=%d %d=%x %d=%x ; %x %x\n",
-  //   alu.io.in.fn,
-  //   io.in.ex.rs1,
-  //   io.in.ex.op1,
-  //   io.in.ex.rs2,
-  //   io.in.ex.op2,
-  //   alu.io.in.op1,
-  //   alu.io.in.op2
-  // )
+  val rop1 = handleForwarding(io.in.ex.rs1, io.in.ex.op1)
+  val rop2 = handleForwarding(io.in.ex.rs2, io.in.ex.op2)
+  alu.io.in.op1 := rop1
+  alu.io.in.op2 := Mux(io.in.ex.use_imm, io.in.ex.imm, rop2)
+  Debug(
+    io.in.valid,
+    "EX fn=%d %d=%x %d=%x ; %x %x\n",
+    alu.io.in.fn,
+    io.in.ex.rs1,
+    io.in.ex.op1,
+    io.in.ex.rs2,
+    io.in.ex.op2,
+    alu.io.in.op1,
+    alu.io.in.op2
+  )
 
   io.out.valid := io.in.valid
 
@@ -169,7 +173,7 @@ class EX(coreConfig: CoreConfig) extends Module {
   io.out.mem.unsigned := io.in.mem.unsigned
   io.out.mem.wWidth := io.in.mem.wWidth
   io.out.mem.addr := alu.io.out
-  io.out.mem.wdata := handleForwarding(io.in.ex.mem_rs, io.in.mem.wdata)
+  io.out.mem.wdata := rop2
 
   io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := alu.io.out
