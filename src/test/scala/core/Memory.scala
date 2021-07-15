@@ -110,6 +110,8 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
           c.io.mem_ctrl.rdata(idx).poke(x.U)
         }
         c.io.mem_ctrl.addr.expect((addr >> 3).U)
+        c.clock.step()
+
         val sub_addr = addr & 7
         var expect = BigInt(0)
         for (i <- 0 until 1 << width)
@@ -128,6 +130,8 @@ class MemoryTest extends FreeSpec with ChiselScalatestTester {
         c.io.in.addr.poke(addr.U)
         c.io.in.wWidth.poke(width.U)
         c.io.in.wdata.poke(data.U)
+        c.clock.step()
+        
         val sub_addr = addr & 7
         for (i <- 0 until 8) {
           val mask = sub_addr <= i && i < sub_addr + (1 << width)

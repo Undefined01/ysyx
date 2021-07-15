@@ -40,6 +40,9 @@ object Memory {
       }
     })
 
+    val unsigned = RegNext(io.in.unsigned)
+    val wWidth = RegNext(io.in.wWidth)
+
     io.mem_ctrl.addr := ZeroExt(
       io.in.addr(addrWidth - 1, log2Ceil(dataBytes)),
       addrWidth
@@ -49,9 +52,9 @@ object Memory {
         (0 to log2Ceil(dataBytes))
           .map { y =>
             if (y == log2Ceil(dataBytes)) {
-              (io.in.wWidth === y.U)
+              (wWidth === y.U)
             } else {
-              (io.in.wWidth === y.U) &&
+              (wWidth === y.U) &&
               (io.in.addr(log2Ceil(dataBytes) - 1, y) === (x >> y).U)
             }
           }
@@ -75,13 +78,13 @@ object Memory {
             io.mem_ctrl.rdata((x << y) + b)
           })
           Mux(
-            io.in.unsigned,
+            unsigned,
             ZeroExt(data, dataBytes * 8),
             SignExt(data, dataBytes * 8)
           )
         })(io.in.addr(log2Ceil(dataBytes) - 1, y))
       }
-    })(io.in.wWidth)
+    })(wWidth)
   }
 }
 

@@ -100,6 +100,15 @@ class Core(coreConfig: CoreConfig) extends Module {
   memu.io.in.mem := ex_mem.io.out.mem
   memu.io.in.write_back := ex_mem.io.out.write_back
   memu.io.mem <> mem.io.rwport
+  Debug(
+    memu.io.in.mem.en,
+    "MEM in: mem=%d width=%d %x %x\n",
+    memu.io.in.mem.rw,
+    memu.io.in.mem.wWidth,
+    memu.io.in.mem.addr,
+    memu.io.in.mem.wdata,
+  )
+  Debug("MEM read data %x\n", memu.io.out.rdata)
 
   mem_wb.io.in := memu.io.out
 

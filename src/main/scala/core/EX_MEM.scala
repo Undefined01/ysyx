@@ -40,7 +40,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  io.in_ready := true.B
+  val state = RegInit(0.U)
 
   io.out.valid := RegNext(io.in.valid, false.B)
 
@@ -54,4 +54,17 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
   io.out.write_back.rd :=
     RegNext(Mux(io.in.valid, io.in.write_back.rd, 0.U), 0.U)
   io.out.write_back.data := RegNext(io.in.write_back.data)
+
+  io.in_ready := true.B
+  switch(state) {
+    is(0.U) {
+      when(io.out.mem.en === true.B && io.out.mem.rw === false.B) {
+        state := 1.U
+        io.in_ready := false.B
+      }
+    }
+    is(1.U) {
+      state := 0.U
+    }
+  }
 }
