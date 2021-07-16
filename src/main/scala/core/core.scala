@@ -92,10 +92,8 @@ class Core(coreConfig: CoreConfig) extends Module {
   id_ex.io.in_valid := ifu.io.out.valid
   id_ex.io.in := idu.io.out
 
-  exu.io.in.predicted_pc := id_ex.io.out.predicted_pc
-  exu.io.in.ex := id_ex.io.out.ex
-  exu.io.in.mem := id_ex.io.out.mem
-  exu.io.in.write_back := id_ex.io.out.write_back
+  exu.io.in_valid := id_ex.io.out_valid
+  exu.io.in := id_ex.io.out
   Debug(
     id_ex.io.out_valid,
     "EX in: predicted_pc=0x%x fn=%d rs1=%d rs2=%d\n",

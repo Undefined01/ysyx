@@ -67,7 +67,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
     }
     is(1.U) {
       state := 0.U
-      io.out.mem.en := true.B
+      io.out.mem.en := false.B
       io.out.write_back.data := io.out.mem_rdata
     }
   }

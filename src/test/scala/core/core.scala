@@ -57,12 +57,17 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
       }
     }
   }
-  "core can run basic immediate arithmetic instructions" in {
+  "core can execute integer computational instructions" in {
     runTestCase("addi_with_nop")
     runTestCase("addi")
     runTestCase("opimm")
     runTestCase("op")
-    runTestCase("ldst")
+  }
+  "core can execute control transfer instructions" in {
     runTestCase("jump")
+    runTestCase("branch")
+  }
+  "core can execute load and store instructions" in {
+    runTestCase("ldst")
   }
 }

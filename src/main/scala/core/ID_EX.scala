@@ -10,6 +10,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
 
     val in_valid = Input(Bool())
     val in = new Bundle {
+      val pc = Input(UInt(coreConfig.XLEN.W))
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Input(UInt(AluFn.bits.W))
@@ -35,6 +36,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
 
     val out_valid = Output(Bool())
     val out = new Bundle {
+      val pc = Output(UInt(coreConfig.XLEN.W))
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Output(UInt(AluFn.bits.W))
@@ -60,6 +62,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
   })
 
   io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
+  io.out.pc := RegEnable(io.in.pc, !io.stall)
   io.out.predicted_pc := RegEnable(io.in.predicted_pc, !io.stall)
   io.out.ex.fn := RegEnable(io.in.ex.fn, !io.stall)
   io.out.ex.is_jump := RegEnable(io.in.ex.is_jump, false.B, !io.stall)

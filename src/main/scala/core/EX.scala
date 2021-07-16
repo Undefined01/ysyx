@@ -17,7 +17,6 @@ object AluFn {
   val OR = 6
   val AND = 7
 
-  val JUMP = 1 + 8
   val SEQ = 6 + 8
   val SNE = 7 + 8
   val SGE = 2 + 8
@@ -88,7 +87,9 @@ class Alu(coreConfig: CoreConfig) extends Module {
 
 class EX(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
+    val in_valid = Input(Bool())
     val in = new Bundle {
+      val pc = Input(UInt(coreConfig.XLEN.W))
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Input(UInt(AluFn.bits.W))
@@ -179,8 +180,15 @@ class EX(coreConfig: CoreConfig) extends Module {
 
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
-  when (io.in.ex.is_jump) {
+  when (io.in_valid && io.in.ex.is_jump) {
     io.out.write_back.data := io.in.ex.imm
+    when(io.in.predicted_pc =/= io.out.jump_pc) {
+      io.out.prediction_failure := true.B
+    }
+  }
+  when (io.in_valid && io.in.ex.is_branch) {
+    io.out.jump_pc := Mux(alu.io.out(0).asBool, io.in.ex.imm, io.in.pc + 4.U)
+    Debug("Alu %d %x; Branch to %x\n", alu.io.in.fn, alu.io.out, io.out.jump_pc)
     when(io.in.predicted_pc =/= io.out.jump_pc) {
       io.out.prediction_failure := true.B
     }

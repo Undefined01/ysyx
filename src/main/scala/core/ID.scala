@@ -27,6 +27,7 @@ class ID(coreConfig: CoreConfig) extends Module {
     }
 
     val out = new Bundle {
+      val pc = Output(UInt(coreConfig.XLEN.W))
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Output(UInt(AluFn.bits.W))
@@ -93,9 +94,14 @@ class ID(coreConfig: CoreConfig) extends Module {
     io.out.ex.imm := io.in.pc + 4.U
     io.out.write_back.rd := rd
   }
+  def B_type() = {
+    io.out.ex.use_imm := false.B
+    io.out.ex.imm := io.in.pc + B_imm
+  }
 
   io.reg_io.raddr(0) := rs1
   io.reg_io.raddr(1) := rs2
+  io.out.pc := io.in.pc
 
   io.out.ex := DontCare
   io.out.ex.rs1 := rs1
@@ -145,6 +151,22 @@ class ID(coreConfig: CoreConfig) extends Module {
       J_type()
       io.out.ex.fn := AluFn.ADD.U
       io.out.ex.is_jump := true.B
+    }
+    is(DecodeConstant.Branch.U) {
+      B_type()
+      io.out.ex.fn := MuxLookup(
+        funct3,
+        DontCare,
+        Array(
+          0.U -> AluFn.SEQ.U,
+          1.U -> AluFn.SNE.U,
+          4.U -> AluFn.SLT.U,
+          5.U -> AluFn.SGE.U,
+          6.U -> AluFn.SLTU.U,
+          7.U -> AluFn.SGEU.U
+        )
+      )
+      io.out.ex.is_branch := true.B
     }
   }
 }
