@@ -30,9 +30,11 @@ class Alu(coreConfig: CoreConfig) extends Module {
   private val shift_op2_len = coreConfig.XLEN match {
     case 32 => 5; case 64 => 6
   }
+
   val io = IO(new Bundle {
     val in = new Bundle {
       val fn = Input(UInt(AluFn.bits.W))
+      val op32 = Input(Bool())
       val op1 = Input(UInt(coreConfig.XLEN.W))
       val op2 = Input(UInt(coreConfig.XLEN.W))
     }
@@ -40,20 +42,22 @@ class Alu(coreConfig: CoreConfig) extends Module {
   })
 
   val fn = io.in.fn
-  val op1 = io.in.op1
-  val op2 = io.in.op2
+  val op32 = io.in.op32
+  val op1 = Mux(op32, SignExt(io.in.op1(31, 0), coreConfig.XLEN), io.in.op1)
+  val op2 = Mux(op32, SignExt(io.in.op2(31, 0), coreConfig.XLEN), io.in.op2)
+  val shift_op2 = Mux(op32, Cat(0.U(1.W), op2(4, 0)), op2(5, 0))
 
   val add_sub_op2 = if (fn == AluFn.SUB) ~op2 + 1.U else op2
   val add_sub = op1 + add_sub_op2
 
-  val sll = op1 << op2(shift_op2_len - 1, 0)
+  val sll = op1 << shift_op2
   val lt = op1.asSInt < op2.asSInt
   val ltu = op1 < op2
   val slt = ZeroExt(lt.asUInt, coreConfig.XLEN)
   val sltu = ZeroExt(ltu.asUInt, coreConfig.XLEN)
   val xor = op1 ^ op2
-  val srl = op1 >> op2(shift_op2_len - 1, 0)
-  val sra = (op1.asSInt >> op2(shift_op2_len - 1, 0)).asUInt
+  val srl = op1 >> shift_op2
+  val sra = (op1.asSInt >> shift_op2).asUInt
   val or = op1 | op2
   val and = op1 & op2
 
@@ -63,7 +67,7 @@ class Alu(coreConfig: CoreConfig) extends Module {
   val sge = ZeroExt((!lt).asUInt, coreConfig.XLEN)
   val sgeu = ZeroExt((!ltu).asUInt, coreConfig.XLEN)
 
-  io.out := MuxLookup(
+  val res = MuxLookup(
     fn,
     add_sub,
     Array(
@@ -83,6 +87,7 @@ class Alu(coreConfig: CoreConfig) extends Module {
       AluFn.SGEU.U -> sgeu
     )
   )
+  io.out := Mux(op32, SignExt(res(31, 0), coreConfig.XLEN), res)
 }
 
 class EX(coreConfig: CoreConfig) extends Module {
@@ -93,6 +98,7 @@ class EX(coreConfig: CoreConfig) extends Module {
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Input(UInt(AluFn.bits.W))
+        val op32 = Input(Bool())
         val is_jump = Input(Bool())
         val is_branch = Input(Bool())
         val use_imm = Input(Bool())
@@ -153,6 +159,7 @@ class EX(coreConfig: CoreConfig) extends Module {
 
   val alu = Module(new Alu(coreConfig))
   alu.io.in.fn := io.in.ex.fn
+  alu.io.in.op32 := io.in.ex.op32
   val rop1 = handleForwarding(io.in.ex.rs1, io.in.ex.op1)
   val rop2 = handleForwarding(io.in.ex.rs2, io.in.ex.op2)
   alu.io.in.op1 := rop1
@@ -180,13 +187,13 @@ class EX(coreConfig: CoreConfig) extends Module {
 
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
-  when (io.in_valid && io.in.ex.is_jump) {
+  when(io.in_valid && io.in.ex.is_jump) {
     io.out.write_back.data := io.in.ex.imm
     when(io.in.predicted_pc =/= io.out.jump_pc) {
       io.out.prediction_failure := true.B
     }
   }
-  when (io.in_valid && io.in.ex.is_branch) {
+  when(io.in_valid && io.in.ex.is_branch) {
     io.out.jump_pc := Mux(alu.io.out(0).asBool, io.in.ex.imm, io.in.pc + 4.U)
     Debug("Alu %d %x; Branch to %x\n", alu.io.in.fn, alu.io.out, io.out.jump_pc)
     when(io.in.predicted_pc =/= io.out.jump_pc) {

@@ -7,11 +7,16 @@ import utils._
 object DecodeConstant {
   val OpImm = BigInt("0010011", 2)
   val Op = BigInt("0110011", 2)
+  val Lui = BigInt("0110111", 2)
+  val AuiPc = BigInt("0010111", 2)
   val Load = BigInt("0000011", 2)
   val Store = BigInt("0100011", 2)
   val Jal = BigInt("1101111", 2)
   val Jalr = BigInt("1100111", 2)
   val Branch = BigInt("1100011", 2)
+
+  val OpImm32 = BigInt("0011011", 2)
+  val Op32 = BigInt("0111011", 2)
 }
 
 class ID(coreConfig: CoreConfig) extends Module {
@@ -31,6 +36,7 @@ class ID(coreConfig: CoreConfig) extends Module {
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
       val ex = new Bundle {
         val fn = Output(UInt(AluFn.bits.W))
+        val op32 = Output(Bool())
         val is_jump = Output(Bool())
         val is_branch = Output(Bool())
         val use_imm = Output(Bool())
@@ -83,9 +89,10 @@ class ID(coreConfig: CoreConfig) extends Module {
     io.out.ex.use_imm := false.B
     io.out.write_back.rd := rd
   }
-  def S_type() = {
+  def U_type() = {
     io.out.ex.use_imm := true.B
-    io.out.ex.imm := S_imm
+    io.out.ex.imm := U_imm
+    io.out.write_back.rd := rd
   }
   def J_type() = {
     io.out.ex.use_imm := false.B
@@ -97,6 +104,10 @@ class ID(coreConfig: CoreConfig) extends Module {
   def B_type() = {
     io.out.ex.use_imm := false.B
     io.out.ex.imm := io.in.pc + B_imm
+  }
+  def S_type() = {
+    io.out.ex.use_imm := true.B
+    io.out.ex.imm := S_imm
   }
 
   io.reg_io.raddr(0) := rs1
@@ -110,6 +121,8 @@ class ID(coreConfig: CoreConfig) extends Module {
   io.out.ex.op2 := io.reg_io.rdata(1)
   io.out.ex.is_jump := false.B
   io.out.ex.is_branch := false.B
+
+  io.out.ex.op32 := false.B
 
   io.out.mem.en := false.B
   io.out.mem.rw := DontCare
@@ -127,6 +140,18 @@ class ID(coreConfig: CoreConfig) extends Module {
     is(DecodeConstant.Op.U) {
       R_type()
       io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
+    }
+    is(DecodeConstant.Lui.U) {
+      U_type()
+      io.out.ex.rs1 := 0.U
+      io.out.ex.op1 := 0.U
+      io.out.ex.fn := AluFn.ADD.U
+    }
+    is(DecodeConstant.AuiPc.U) {
+      U_type()
+      io.out.ex.rs1 := 0.U
+      io.out.ex.op1 := io.in.pc
+      io.out.ex.fn := AluFn.ADD.U
     }
     is(DecodeConstant.Load.U) {
       I_type()
@@ -167,6 +192,17 @@ class ID(coreConfig: CoreConfig) extends Module {
         )
       )
       io.out.ex.is_branch := true.B
+    }
+
+    is(DecodeConstant.OpImm32.U) {
+      I_type()
+      io.out.ex.op32 := true.B
+      io.out.ex.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
+    }
+    is(DecodeConstant.Op32.U) {
+      R_type()
+      io.out.ex.op32 := true.B
+      io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
     }
   }
 }

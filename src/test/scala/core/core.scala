@@ -62,6 +62,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
     runTestCase("addi")
     runTestCase("opimm")
     runTestCase("op")
+    runTestCase("u_instr")
   }
   "core can execute control transfer instructions" in {
     runTestCase("jump")
@@ -69,5 +70,8 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
   }
   "core can execute load and store instructions" in {
     runTestCase("ldst")
+  }
+  "core can execute 32-bit integer computational instructions" in {
+    runTestCase("op32")
   }
 }
