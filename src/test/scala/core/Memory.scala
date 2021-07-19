@@ -1,14 +1,14 @@
-package core
+package rvcore
+
+import org.scalatest._
+import chiseltest._
+import chisel3._
+import chisel3.util.experimental.loadMemoryFromFile
 
 import firrtl.FileUtils
 import java.io._
 import java.nio.file.{Files, Paths}
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
-
-import chisel3._
-import chisel3.tester._
-import org.scalatest.FreeSpec
-import chisel3.util.experimental.loadMemoryFromFile
 
 object MemoryTest {
   def prepareMemoryFile(hexfile: String, target_path: String, bytes: Int) = {

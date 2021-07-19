@@ -1,8 +1,8 @@
-package core
+package rvcore
 
-import chisel3._
-import chisel3.tester._
 import org.scalatest._
+import chiseltest._
+import chisel3._
 
 import firrtl.FileUtils
 import java.io._
@@ -15,7 +15,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
       s"test_run_dir/temp/${testcaseName}.hex",
       8
     )
-    test(new Core(new RV64ICoreConfig {
+    test(new RvCore(new RV64ICoreConfig {
       override val DebugPin = true
       override val MemoryFile = s"test_run_dir/temp/${testcaseName}.hex"
     })) { c =>

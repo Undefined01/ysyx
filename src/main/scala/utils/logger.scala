@@ -6,7 +6,7 @@ import chisel3.util._
 import java.awt.print.Printable
 
 object Logger {
-  val LogFilter = LogLevel.DEBUG
+  val LogFilter = LogLevel.WARN
 
   object LogLevel extends Enumeration {
     type LogLevel = Value

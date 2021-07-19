@@ -1,8 +1,8 @@
-package core
+package rvcore
 
+import org.scalatest._
+import chiseltest._
 import chisel3._
-import chisel3.tester._
-import org.scalatest.FreeSpec
 
 class RegFileTest extends FreeSpec with ChiselScalatestTester {
   "Registers can keep values" in {

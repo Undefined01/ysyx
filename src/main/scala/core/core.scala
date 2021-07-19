@@ -1,10 +1,10 @@
-package core
+package rvcore
 
 import chisel3._
 import chisel3.util._
 import utils.Logger.Debug
 
-class Core(coreConfig: CoreConfig) extends Module {
+class RvCore(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val debug =
       if (coreConfig.DebugPin) Some(new Bundle {
