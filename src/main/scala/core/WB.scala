@@ -5,6 +5,7 @@ import chisel3.util._
 
 class WB(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
+    val stall = Input(Bool())
     val in_valid = Input(Bool())
     val in = new Bundle {
       val pc = Input(UInt(coreConfig.XLEN.W))
@@ -31,7 +32,7 @@ class WB(coreConfig: CoreConfig) extends Module {
     ext.io.coreid := coreConfig.CoreId.U
     ext.io.index := 0.U
 
-    ext.io.valid := io.in_valid
+    ext.io.valid := io.in_valid && !io.stall
     ext.io.pc := io.in.pc
     ext.io.instr := DontCare // RegNext(io.in.instr)
     ext.io.skip := false.B

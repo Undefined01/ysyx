@@ -134,6 +134,7 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   mem_wb.io.in.pc := ex_mem.io.out.pc
   mem_wb.io.in.write_back := memu.io.out.write_back
 
+  wbu.io.stall := stall
   wbu.io.in_valid := mem_wb.io.out_valid
   wbu.io.in := mem_wb.io.out
   regs.io.wport := wbu.io.reg_io
