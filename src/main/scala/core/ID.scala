@@ -173,7 +173,8 @@ class ID(coreConfig: CoreConfig) extends Module {
       io.out.ex.is_jump := true.B
     }
     is(DecodeConstant.Jalr.U) {
-      I_type()
+      J_type()
+      io.out.ex.op2 := I_imm
       io.out.ex.fn := AluFn.ADD.U
       io.out.ex.is_jump := true.B
     }
