@@ -7,15 +7,36 @@ import chisel3._
 import firrtl.FileUtils
 import java.io._
 
+import device._
+
 class CoreTest extends FreeSpec with ChiselScalatestTester {
+  class ScalaTestTop(coreConfig: CoreConfig) extends Module {
+    val io = IO(new Bundle {
+      val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
+      val if_pc = Output(UInt(coreConfig.XLEN.W))
+      val if_instr = Output(UInt(coreConfig.InstrLen.W))
+    })
+    val ram = Module(
+      new RAM(
+        addrWidth = coreConfig.XLEN,
+        dataBytes = coreConfig.XLEN / 8,
+        depth = coreConfig.MemorySize / coreConfig.XLEN,
+        memoryFile = coreConfig.MemoryFile
+      )
+    )
+    val core = Module(new RvCore(coreConfig))
+    core.io.ram <> ram.io
+    io <> core.io.debug.get
+  }
+
   FileUtils.makeDirectory("test_run_dir/temp")
   def runTestCase(testcaseName: String) {
-    MemoryTest.prepareMemoryFile(
+    RamTest.prepareMemoryFile(
       s"/basic/build/${testcaseName}.bin",
       s"test_run_dir/temp/${testcaseName}.hex",
       8
     )
-    test(new RvCore(new RV64ICoreConfig {
+    test(new ScalaTestTop(new RV64ICoreConfig {
       override val DebugPin = true
       override val MemoryFile = s"test_run_dir/temp/${testcaseName}.hex"
     })) { c =>
@@ -26,8 +47,8 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
         c.clock.step()
         i += 1
 
-        val if_pc = c.io.debug.get.if_pc.peek().litValue
-        val if_instr = c.io.debug.get.if_instr.peek().litValue
+        val if_pc = c.io.if_pc.peek().litValue
+        val if_instr = c.io.if_instr.peek().litValue
         if (if_instr == 0x7f2a214b) {
           trapped = true
           println(f"Hit good trap at 0x${if_pc}%x after ${i}%d steps")
@@ -45,7 +66,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
             .takeWhile(_ != null)
             .zipWithIndex
             .foreach { case (x, idx) =>
-              val l = c.io.debug.get.reg(idx).peek().litValue
+              val l = c.io.reg(idx).peek().litValue
               val r = BigInt(x, 16)
               if (l != r) {
                 println(f"ERROR Reg ${idx}%d got 0x${l}%x expect 0x${r}%x\n")

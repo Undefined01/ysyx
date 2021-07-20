@@ -13,8 +13,11 @@ class IF(coreConfig: CoreConfig) extends Module {
     }
 
     // IO to fetch instruction from memory
-    val if_io =
-      Flipped(new Memory.ReadPort(coreConfig.XLEN, coreConfig.XLEN / 8))
+    val if_io = new Bundle {
+      val valid = Input(Bool())
+      val raddr = Output(UInt(coreConfig.XLEN.W))
+      val rdata = Input(UInt(coreConfig.XLEN.W))
+    }
 
     val out = new Bundle {
       val valid = Output(Bool())
@@ -23,16 +26,13 @@ class IF(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  io.if_io.en := true.B
-  io.if_io.addr := Mux(!io.stall, io.in.pc >> 3, io.out.pc >> 3)
-  val instr = Mux(
-    io.out.pc(2),
-    Cat(io.if_io.data(7), io.if_io.data(6), io.if_io.data(5), io.if_io.data(4)),
-    Cat(io.if_io.data(3), io.if_io.data(2), io.if_io.data(1), io.if_io.data(0))
-  )
+  val is_stall = RegNext(io.stall, false.B)
+  val instr = io.if_io.rdata(coreConfig.InstrLen - 1, 0)
+  val last_instr = RegEnable(instr, !is_stall)
 
-  io.out.valid :=
-    Mux(io.flush, false.B, RegEnable(true.B, false.B, !io.stall))
+  io.if_io.raddr := Mux(!io.stall, io.in.pc, io.out.pc)
+
+  io.out.valid := !io.flush && RegEnable(io.if_io.valid, false.B, !io.stall)
   io.out.pc := RegEnable(io.in.pc, !io.stall)
-  io.out.instr := instr
+  io.out.instr := Mux(is_stall, last_instr, instr)
 }

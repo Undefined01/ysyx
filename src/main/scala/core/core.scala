@@ -4,8 +4,11 @@ import chisel3._
 import chisel3.util._
 import utils.Logger.Debug
 
+import device.RAM.RamIo
+
 class RvCore(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
+    val ram = new RamIo(coreConfig.XLEN, coreConfig.XLEN / 8)
     val debug =
       if (coreConfig.DebugPin) Some(new Bundle {
         val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
@@ -14,15 +17,6 @@ class RvCore(coreConfig: CoreConfig) extends Module {
       })
       else None
   })
-
-  val mem = Module(
-    new Memory(
-      addrWidth = coreConfig.XLEN,
-      dataBytes = coreConfig.XLEN / 8,
-      depth = coreConfig.MemorySize / coreConfig.XLEN,
-      memoryFile = coreConfig.MemoryFile
-    )
-  )
 
   val pc = Wire(UInt(coreConfig.XLEN.W))
 
@@ -36,6 +30,9 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   val memu = Module(new MEM(coreConfig))
   val mem_wb = Module(new MEM_WB(coreConfig))
   // val wbu = Module(new WB(coreConfig))
+
+  val ram_mux = Module(new RamMux(coreConfig))
+  ram_mux.io.ram_io <> io.ram
 
   val stall = Wire(Bool())
   val flush = Wire(Bool())
@@ -59,7 +56,7 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   ifu.io.stall := stall
   ifu.io.flush := flush
   ifu.io.in.pc := pc
-  ifu.io.if_io <> mem.io.rport
+  ifu.io.if_io <> ram_mux.io.if_io
   // Debug(
   //   ifu.io.if_io.en,
   //   "IF: fetch pc=0x%x 0x%x\n",
@@ -120,7 +117,7 @@ class RvCore(coreConfig: CoreConfig) extends Module {
 
   memu.io.in.mem := ex_mem.io.out.mem
   memu.io.in.write_back := ex_mem.io.out.write_back
-  memu.io.mem <> mem.io.rwport
+  memu.io.mem_io <> ram_mux.io.mem_io
   Debug(
     memu.io.in.mem.en,
     "MEM in: mem=%d width=%d %x %x\n",

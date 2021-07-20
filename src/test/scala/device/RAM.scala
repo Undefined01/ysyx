@@ -10,7 +10,7 @@ import java.io._
 import java.nio.file.{Files, Paths}
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
-object MemoryTest {
+object RamTest {
   def prepareMemoryFile(hexfile: String, target_path: String, bytes: Int) = {
     val (basename, extname) = {
       val tmp = target_path.split("\\.(?=[^\\.]+$)")
@@ -41,7 +41,7 @@ object MemoryTest {
   }
 }
 
-class MemoryTest extends FreeSpec with ChiselScalatestTester {
+class RamTest extends FreeSpec with ChiselScalatestTester {
   // "Read and write with mask" in {
   //   FileUtils.makeDirectory("test_run_dir/temp")
   //   MemoryTest.prepareMemoryFile("/mem1.txt", "test_run_dir/temp/mem1.txt", 4)

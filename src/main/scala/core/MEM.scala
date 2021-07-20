@@ -20,8 +20,15 @@ class MEM(coreConfig: CoreConfig) extends Module {
         val data = Input(UInt(coreConfig.XLEN.W))
       }
     }
-    val mem =
-      Flipped(new Memory.ReadWritePort(coreConfig.XLEN, coreConfig.XLEN / 8))
+    val mem_io = new Bundle {
+      val en = Output(Bool())
+      val rw = Output(Bool())
+      val unsigned = Output(Bool())
+      val wWidth = Output(UInt(3.W))
+      val addr = Output(UInt(coreConfig.XLEN.W))
+      val rdata = Input(UInt(coreConfig.XLEN.W))
+      val wdata = Output(UInt(coreConfig.XLEN.W))
+    }
     val out = new Bundle {
       val rdata = Output(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
@@ -31,21 +38,13 @@ class MEM(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  val mem_driver = Module(
-    new Memory.PortDriver(coreConfig.XLEN, coreConfig.XLEN / 8)
-  )
-  mem_driver.io.in.addr := io.in.mem.addr
-  mem_driver.io.in.unsigned := io.in.mem.unsigned
-  mem_driver.io.in.wWidth := io.in.mem.wWidth
-  mem_driver.io.in.wdata := io.in.mem.wdata
+  io.mem_io.en := io.in.mem.en
+  io.mem_io.rw := io.in.mem.rw
+  io.mem_io.unsigned := io.in.mem.unsigned
+  io.mem_io.wWidth := io.in.mem.wWidth
+  io.mem_io.addr := io.in.mem.addr
+  io.mem_io.wdata := io.in.mem.wdata
 
-  io.mem.en := io.in.mem.en
-  io.mem.rw := io.in.mem.rw
-  io.mem.addr := mem_driver.io.mem_ctrl.addr
-  mem_driver.io.mem_ctrl.rdata := io.mem.rdata
-  io.mem.wmask := mem_driver.io.mem_ctrl.wmask
-  io.mem.wdata := mem_driver.io.mem_ctrl.wdata
-
-  io.out.rdata := mem_driver.io.out.rdata
+  io.out.rdata := io.mem_io.rdata
   io.out.write_back := io.in.write_back
 }

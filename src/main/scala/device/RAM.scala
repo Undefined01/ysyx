@@ -7,6 +7,15 @@ import chisel3.util.experimental.loadMemoryFromFile
 import utils._
 
 object RAM {
+  class RamIo(addrWidth: Int, dataBytes: Int) extends Bundle {
+    val en = Output(Bool())
+    val raddr = Output(UInt(addrWidth.W))
+    val rdata = Input(UInt((dataBytes * 8).W))
+    val wen = Output(Bool())
+    val waddr = Output(UInt(addrWidth.W))
+    val wmask = Output(UInt((dataBytes * 8).W))
+    val wdata = Output(UInt((dataBytes * 8).W))
+  }
   class PortDriver(addrWidth: Int, dataBytes: Int) extends Module {
     require(isPow2(dataBytes))
     val io = IO(new Bundle {
@@ -66,15 +75,7 @@ class RAM(
     depth: Int,
     memoryFile: String = ""
 ) extends Module {
-  val io = IO(new Bundle {
-    val en = Input(Bool())
-    val raddr = Input(UInt(addrWidth.W))
-    val rdata = Output(UInt((dataBytes * 8).W))
-    val wen = Input(Bool())
-    val waddr = Input(UInt(addrWidth.W))
-    val wmask = Input(UInt((dataBytes * 8).W))
-    val wdata = Input(UInt((dataBytes * 8).W))
-  })
+  val io = IO(Flipped(new RAM.RamIo(addrWidth, dataBytes)))
 
   val mem = SyncReadMem(depth, Vec(dataBytes, UInt(8.W)))
 
@@ -82,7 +83,7 @@ class RAM(
     loadMemoryFromFile(mem, memoryFile)
   }
 
-  io.rdata := Cat(mem.read(io.raddr, io.en))
+  io.rdata := Cat(mem.read(io.raddr, io.en).reverse)
 
   val wdata = VecInit((0 until dataBytes).map { x =>
     io.wdata(x * 8 + 7, x * 8)
