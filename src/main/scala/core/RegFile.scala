@@ -40,4 +40,10 @@ class RegFile(coreConfig: CoreConfig) extends Module {
   if (coreConfig.DebugPin) {
     io.debug.get.reg := reg
   }
+  if (coreConfig.DiffTest) {
+    val mod = Module(new difftest.DifftestArchIntRegState)
+    mod.io.clock := clock
+    mod.io.coreid := coreConfig.CoreId.U
+    mod.io.gpr := reg
+  }
 }

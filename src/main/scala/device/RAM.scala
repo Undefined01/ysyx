@@ -85,12 +85,12 @@ class RAM(
 
   io.rdata := Cat(mem.read(io.raddr, io.en).reverse)
 
-  val wdata = VecInit((0 until dataBytes).map { x =>
+  val wdata = VecInit.tabulate(dataBytes) { x =>
     io.wdata(x * 8 + 7, x * 8)
-  })
-  val wmask = VecInit((0 until dataBytes).map { x =>
+  }
+  val wmask = VecInit.tabulate(dataBytes) { x =>
     io.wmask(x * 8).asBool
-  })
+  }
   when(io.en && io.wen) {
     mem.write(io.waddr, wdata, wmask)
   }

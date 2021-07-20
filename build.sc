@@ -1,13 +1,13 @@
+
 // import Mill dependency
 import mill._
-import mill.define.Sources
-import mill.modules.Util
+import mill.scalalib._
+import mill.scalalib.scalafmt.ScalafmtModule
 import mill.scalalib.TestModule.ScalaTest
-import scalalib._
 // support BSP
 import mill.bsp._
 
-object %NAME% extends SbtModule { m =>
+object ysyx extends SbtModule { m =>
   override def millSourcePath = os.pwd
   override def scalaVersion = "2.12.13"
   override def scalacOptions = Seq(
@@ -20,7 +20,7 @@ object %NAME% extends SbtModule { m =>
     "-P:chiselplugin:useBundlePlugin"
   )
   override def ivyDeps = Agg(
-    ivy"edu.berkeley.cs::chisel3:3.4.3",
+    ivy"edu.berkeley.cs::chisel3:3.4.3"
   )
   override def scalacPluginIvyDeps = Agg(
     ivy"edu.berkeley.cs:::chisel3-plugin:3.4.3",
@@ -31,4 +31,13 @@ object %NAME% extends SbtModule { m =>
       ivy"edu.berkeley.cs::chiseltest:0.3.3"
     )
   }
+  override def moduleDeps = super.moduleDeps ++ Seq(difftest)
+}
+
+object difftest extends ScalaModule {
+  override def scalaVersion = "2.12.13"
+  override def millSourcePath = os.pwd / "difftest"
+  override def ivyDeps = Agg(
+    ivy"edu.berkeley.cs::chisel3:3.4.3"
+  )
 }

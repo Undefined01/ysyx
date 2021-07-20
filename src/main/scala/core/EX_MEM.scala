@@ -11,6 +11,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
 
     val in_valid = Input(Bool())
     val in = new Bundle {
+      val pc = Input(UInt(coreConfig.XLEN.W))
       val mem = new Bundle {
         val en = Input(Bool())
         val rw = Input(Bool())
@@ -24,8 +25,10 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
         val data = Input(UInt(coreConfig.XLEN.W))
       }
     }
+
+    val out_valid = Output(Bool())
     val out = new Bundle {
-      val valid = Output(Bool())
+      val pc = Output(UInt(coreConfig.XLEN.W))
       val mem = new Bundle {
         val en = Output(Bool())
         val rw = Output(Bool())
@@ -44,7 +47,8 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
 
   val state = RegInit(0.U(1.W))
 
-  io.out.valid := RegEnable(io.in_valid, false.B, !io.stall)
+  io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
+  io.out.pc := RegEnable(io.in.pc, !io.stall)
 
   io.out.mem.en := RegEnable(io.in_valid && io.in.mem.en, false.B, !io.stall)
   io.out.mem.rw := RegEnable(io.in.mem.rw, !io.stall)

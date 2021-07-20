@@ -10,7 +10,8 @@ import java.io._
 import device._
 
 class CoreTest extends FreeSpec with ChiselScalatestTester {
-  class ScalaTestTop(coreConfig: CoreConfig) extends Module {
+  class ScalaTestTop(coreConfig: CoreConfig, memoryFile: String)
+      extends Module {
     val io = IO(new Bundle {
       val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
       val if_pc = Output(UInt(coreConfig.XLEN.W))
@@ -20,8 +21,8 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
       new RAM(
         addrWidth = coreConfig.XLEN,
         dataBytes = coreConfig.XLEN / 8,
-        depth = coreConfig.MemorySize / coreConfig.XLEN,
-        memoryFile = coreConfig.MemoryFile
+        depth = 40 * 1024 / coreConfig.XLEN,
+        memoryFile = memoryFile
       )
     )
     val core = Module(new RvCore(coreConfig))
@@ -36,10 +37,14 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
       s"test_run_dir/temp/${testcaseName}.hex",
       8
     )
-    test(new ScalaTestTop(new RV64ICoreConfig {
-      override val DebugPin = true
-      override val MemoryFile = s"test_run_dir/temp/${testcaseName}.hex"
-    })) { c =>
+    test(
+      new ScalaTestTop(
+        new RV64ICoreConfig {
+          override val DebugPin = true
+        },
+        memoryFile = s"test_run_dir/temp/${testcaseName}.hex"
+      )
+    ) { c =>
       println(s"Start running testcase `${testcaseName}`")
       var i = 0
       var trapped = false

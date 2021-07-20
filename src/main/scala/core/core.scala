@@ -29,7 +29,7 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   val ex_mem = Module(new EX_MEM(coreConfig))
   val memu = Module(new MEM(coreConfig))
   val mem_wb = Module(new MEM_WB(coreConfig))
-  // val wbu = Module(new WB(coreConfig))
+  val wbu = Module(new WB(coreConfig))
 
   val ram_mux = Module(new RamMux(coreConfig))
   ram_mux.io.ram_io <> io.ram
@@ -93,8 +93,8 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   exu.io.in := id_ex.io.out
   Debug(
     id_ex.io.out_valid,
-    "EX in: predicted_pc=0x%x fn=%d rs1=%d rs2=%d\n",
-    exu.io.in.predicted_pc,
+    "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",
+    exu.io.in.pc,
     exu.io.in.ex.fn,
     exu.io.in.ex.rs1,
     exu.io.in.ex.rs2
@@ -112,38 +112,36 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   // ex_mem.io.stall := stall
   ex_mem.io.in_valid := id_ex.io.out_valid
   ex_mem.io.in := exu.io.out
-  exu.io.forward(0) <> ex_mem.io.out.write_back
+  exu.io.forward(0) := ex_mem.io.out.write_back
   ex_mem.io.out.mem_rdata := memu.io.out.rdata
 
   memu.io.in.mem := ex_mem.io.out.mem
   memu.io.in.write_back := ex_mem.io.out.write_back
   memu.io.mem_io <> ram_mux.io.mem_io
   Debug(
+    ex_mem.io.out_valid,
+    "MEM in: pc=0x%x mem=%d%d width=%d %x %x\n",
+    ex_mem.io.out.pc,
     memu.io.in.mem.en,
-    "MEM in: mem=%d width=%d %x %x\n",
     memu.io.in.mem.rw,
     memu.io.in.mem.wWidth,
     memu.io.in.mem.addr,
     memu.io.in.mem.wdata
   )
-  // Debug(
-  //   "MEM %x read %x, mask %x, write %x\n",
-  //   mem.io.rwport.addr << 3,
-  //   mem.io.rwport.rdata.reverse.foldLeft(0.U(1.W))(Cat(_, _)),
-  //   mem.io.rwport.wmask.reverse.foldLeft(0.U(1.W))(Cat(_, _)),
-  //   mem.io.rwport.wdata.reverse.foldLeft(0.U(1.W))(Cat(_, _))
-  // )
 
   mem_wb.io.stall := stall
-  mem_wb.io.in := memu.io.out
+  mem_wb.io.in_valid := ex_mem.io.out_valid
+  mem_wb.io.in.pc := ex_mem.io.out.pc
+  mem_wb.io.in.write_back := memu.io.out.write_back
 
-  regs.io.wport.wen := true.B
-  regs.io.wport.waddr := mem_wb.io.out.write_back.rd
-  regs.io.wport.wdata := mem_wb.io.out.write_back.data
-  exu.io.forward(1) <> mem_wb.io.out.write_back
+  wbu.io.in_valid := mem_wb.io.out_valid
+  wbu.io.in := mem_wb.io.out
+  regs.io.wport := wbu.io.reg_io
+  exu.io.forward(1) := mem_wb.io.out.write_back
   Debug(
-    mem_wb.io.out.write_back.rd =/= 0.U,
-    "WB in: reg%d=%x\n",
+    mem_wb.io.out_valid,
+    "WB in: pc=%x reg%d=%x\n",
+    mem_wb.io.out.pc,
     mem_wb.io.out.write_back.rd,
     mem_wb.io.out.write_back.data
   )

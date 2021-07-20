@@ -5,13 +5,14 @@ import chisel3.util._
 
 trait CoreConfig {
   val DebugPin = false
+  val DiffTest = false
+  
+  val CoreId = 0
   val XLEN = 64
   val RegReadPorts = 2
   val RegAddrWidth = 5
   val InstrLen = 32
-  val InitialPC = 0x0
-  val MemoryFile = ""
-  val MemorySize = 40 * 1024
+  val InitialPC = BigInt("80000000", 16)
 }
 
 class RV64ICoreConfig extends CoreConfig

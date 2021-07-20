@@ -52,4 +52,5 @@ class RamMux(coreConfig: CoreConfig) extends Module {
     driver.io.rWidth := 2.U // 4 Bytes
     io.if_io.valid := true.B
   }
+  printf("MEM Write %x %x\n", driver.io.waddr, driver.io.wdata)
 }

@@ -128,6 +128,7 @@ class EX(coreConfig: CoreConfig) extends Module {
     )
 
     val out = new Bundle {
+      val pc = Output(UInt(coreConfig.XLEN.W))
       val prediction_failure = Output(Bool())
       val jump_pc = Output(UInt(coreConfig.XLEN.W))
       val mem = new Bundle {
@@ -185,6 +186,7 @@ class EX(coreConfig: CoreConfig) extends Module {
   io.out.write_back.rd := io.in.write_back.rd
   io.out.write_back.data := alu.io.out
 
+  io.out.pc := io.in.pc
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
   when(io.in_valid && io.in.ex.is_jump) {

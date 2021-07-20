@@ -141,6 +141,7 @@ src_managed/
 project/boot/
 .history
 .cache
+.coursier
 ### Emacs template
 # -*- mode: gitignore; -*-
 *~

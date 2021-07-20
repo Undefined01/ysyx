@@ -5,8 +5,9 @@ import chisel3.util._
 
 class WB(coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
+    val in_valid = Input(Bool())
     val in = new Bundle {
-      val valid = Input(Bool())
+      val pc = Input(UInt(coreConfig.XLEN.W))
       val write_back = new Bundle {
         val rd = Input(UInt(coreConfig.RegAddrWidth.W))
         val data = Input(UInt(coreConfig.XLEN.W))
@@ -20,7 +21,25 @@ class WB(coreConfig: CoreConfig) extends Module {
     }
   })
 
-  io.reg_io.wen := io.in.valid
+  io.reg_io.wen := io.in_valid
   io.reg_io.waddr := io.in.write_back.rd
   io.reg_io.wdata := io.in.write_back.data
+
+  if (coreConfig.DiffTest) {
+    val ext = Module(new difftest.DifftestInstrCommit)
+    ext.io.clock := clock
+    ext.io.coreid := coreConfig.CoreId.U
+    ext.io.index := 0.U
+
+    ext.io.valid := io.in_valid
+    ext.io.pc := io.in.pc
+    ext.io.instr := DontCare // RegNext(io.in.instr)
+    ext.io.skip := false.B
+    ext.io.isRVC := false.B
+    ext.io.scFailed := false.B
+    ext.io.wen :=
+      io.in_valid && io.in.write_back.rd =/= 0.U
+    ext.io.wdata := io.in.write_back.data
+    ext.io.wdest := io.in.write_back.rd
+  }
 }
