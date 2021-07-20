@@ -47,9 +47,8 @@ class Alu(coreConfig: CoreConfig) extends Module {
   val op2 = Mux(op32, SignExt(io.in.op2(31, 0), coreConfig.XLEN), io.in.op2)
   val shift_op2 = Mux(op32, Cat(0.U(1.W), op2(4, 0)), op2(5, 0))
 
-  val add_sub_op2 = if (fn == AluFn.SUB) ~op2 + 1.U else op2
-  val add_sub = op1 + add_sub_op2
-
+  val add = op1 + op2
+  val sub = op1 - op2
   val sll = op1 << shift_op2
   val lt = op1.asSInt < op2.asSInt
   val ltu = op1 < op2
@@ -69,10 +68,10 @@ class Alu(coreConfig: CoreConfig) extends Module {
 
   val res = MuxLookup(
     fn,
-    add_sub,
+    add,
     Array(
-      AluFn.ADD.U -> add_sub,
-      AluFn.SUB.U -> add_sub,
+      AluFn.ADD.U -> add,
+      AluFn.SUB.U -> sub,
       AluFn.SLL.U -> sll,
       AluFn.SLT.U -> slt,
       AluFn.SLTU.U -> sltu,
