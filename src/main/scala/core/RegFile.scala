@@ -2,34 +2,31 @@ package rvcore
 
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.BoringUtils
 
-class RegFile(coreConfig: CoreConfig) extends Module {
+class RegFile(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val rport = new Bundle {
       val raddr =
-        Input(Vec(coreConfig.RegReadPorts, UInt(coreConfig.RegAddrWidth.W)))
-      val rdata = Output(Vec(coreConfig.RegReadPorts, UInt(coreConfig.XLEN.W)))
+        Input(Vec(c.RegReadPorts, UInt(c.RegAddrWidth.W)))
+      val rdata = Output(Vec(c.RegReadPorts, UInt(c.XLEN.W)))
     }
-    val wport = new Bundle {
-      val wen = Input(Bool())
-      val waddr = Input(UInt(coreConfig.RegAddrWidth.W))
-      val wdata = Input(UInt(coreConfig.XLEN.W))
-    }
-    val debug = if (coreConfig.DebugPin) Some(new Bundle {
-      val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
+    val wb = Flipped(new WriteBackIO)
+    val debug = if (c.DebugPort) Some(new Bundle {
+      val reg = Output(Vec(32, UInt(c.XLEN.W)))
     })
     else None
   })
 
   val negClock = (~clock.asUInt).asBool.asClock
   val reg = withClock(negClock) {
-    RegInit(VecInit(Seq.fill(32)(0.U(coreConfig.XLEN.W))))
+    RegInit(VecInit(Seq.fill(32)(0.U(c.XLEN.W))))
   }
 
-  when(io.wport.wen && io.wport.waddr =/= 0.U) {
-    reg(io.wport.waddr) := io.wport.wdata
+  when(io.wb.rd =/= 0.U) {
+    reg(io.wb.rd) := io.wb.data
   }
-  for (i <- 0 until coreConfig.RegReadPorts) {
+  for (i <- 0 until c.RegReadPorts) {
     when(io.rport.raddr(i) === 0.U) {
       io.rport.rdata(i) := 0.U
     }.otherwise {
@@ -37,13 +34,14 @@ class RegFile(coreConfig: CoreConfig) extends Module {
     }
   }
 
-  if (coreConfig.DebugPin) {
+  if (c.DebugPort) {
     io.debug.get.reg := reg
+    // BoringUtils.addSource(reg, "RegFile_Regs")
   }
-  if (coreConfig.DiffTest) {
+  if (c.DiffTest) {
     val mod = Module(new difftest.DifftestArchIntRegState)
     mod.io.clock := clock
-    mod.io.coreid := coreConfig.CoreId.U
+    mod.io.coreid := c.CoreId.U
     mod.io.gpr := reg
   }
 }

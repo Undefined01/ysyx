@@ -5,7 +5,7 @@ import chisel3.util._
 
 import device.RAM.{RamIo, PortDriver}
 
-class RamMux(coreConfig: CoreConfig) extends Module {
+class RamMux(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val if_io = new Bundle {
       val valid = Output(Bool())

@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import utils.Logger.Debug
 
-class MEM(coreConfig: CoreConfig) extends Module {
+class MEM(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
       val mem = new Bundle {
@@ -14,10 +14,6 @@ class MEM(coreConfig: CoreConfig) extends Module {
         val wWidth = Input(UInt(3.W))
         val addr = Input(UInt(coreConfig.XLEN.W))
         val wdata = Input(UInt(coreConfig.XLEN.W))
-      }
-      val write_back = new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-        val data = Input(UInt(coreConfig.XLEN.W))
       }
     }
     val mem_io = new Bundle {
@@ -31,10 +27,6 @@ class MEM(coreConfig: CoreConfig) extends Module {
     }
     val out = new Bundle {
       val rdata = Output(UInt(coreConfig.XLEN.W))
-      val write_back = new Bundle {
-        val rd = Output(UInt(coreConfig.RegAddrWidth.W))
-        val data = Output(UInt(coreConfig.XLEN.W))
-      }
     }
   })
 
@@ -46,5 +38,4 @@ class MEM(coreConfig: CoreConfig) extends Module {
   io.mem_io.wdata := io.in.mem.wdata
 
   io.out.rdata := io.mem_io.rdata
-  io.out.write_back := io.in.write_back
 }

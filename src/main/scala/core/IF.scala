@@ -3,7 +3,7 @@ package rvcore
 import chisel3._
 import chisel3.util._
 
-class IF(coreConfig: CoreConfig) extends Module {
+class IF(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Input(Bool())
     val flush = Input(Bool())

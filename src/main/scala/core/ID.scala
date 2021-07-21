@@ -19,7 +19,7 @@ object DecodeConstant {
   val Op32 = BigInt("0111011", 2)
 }
 
-class ID(coreConfig: CoreConfig) extends Module {
+class ID(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
       val pc = Input(UInt(coreConfig.XLEN.W))
@@ -52,9 +52,7 @@ class ID(coreConfig: CoreConfig) extends Module {
         val unsigned = Output(Bool())
         val wWidth = Output(UInt(3.W))
       }
-      val write_back = new Bundle {
-        val rd = Output(UInt(coreConfig.RegAddrWidth.W))
-      }
+      val wb = new WriteBackIO
     }
   })
 
@@ -83,23 +81,23 @@ class ID(coreConfig: CoreConfig) extends Module {
   def I_type() = {
     io.out.ex.use_imm := true.B
     io.out.ex.imm := I_imm
-    io.out.write_back.rd := rd
+    io.out.wb.rd := rd
   }
   def R_type() = {
     io.out.ex.use_imm := false.B
-    io.out.write_back.rd := rd
+    io.out.wb.rd := rd
   }
   def U_type() = {
     io.out.ex.use_imm := true.B
     io.out.ex.imm := U_imm
-    io.out.write_back.rd := rd
+    io.out.wb.rd := rd
   }
   def J_type() = {
     io.out.ex.use_imm := false.B
     io.out.ex.rs2 := 0.U
     io.out.ex.op2 := J_imm
     io.out.ex.imm := io.in.pc + 4.U
-    io.out.write_back.rd := rd
+    io.out.wb.rd := rd
   }
   def B_type() = {
     io.out.ex.use_imm := false.B
@@ -128,7 +126,8 @@ class ID(coreConfig: CoreConfig) extends Module {
   io.out.mem.rw := DontCare
   io.out.mem.unsigned := funct3(2).asBool
   io.out.mem.wWidth := funct3(1, 0)
-  io.out.write_back.rd := 0.U
+  io.out.wb.rd := 0.U
+  io.out.wb.data := DontCare
 
   io.out.predicted_pc := io.in.pc + 4.U
 

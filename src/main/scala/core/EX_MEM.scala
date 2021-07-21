@@ -5,7 +5,7 @@ import chisel3.util._
 import utils._
 import utils.Logger.Debug
 
-class EX_MEM(coreConfig: CoreConfig) extends Module {
+class EX_MEM(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Output(Bool())
 
@@ -20,10 +20,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
         val addr = Input(UInt(coreConfig.XLEN.W))
         val wdata = Input(UInt(coreConfig.XLEN.W))
       }
-      val write_back = new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-        val data = Input(UInt(coreConfig.XLEN.W))
-      }
+      val wb = Flipped(new WriteBackIO)
     }
 
     val out_valid = Output(Bool())
@@ -38,10 +35,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
         val wdata = Output(UInt(coreConfig.XLEN.W))
       }
       val mem_rdata = Input(UInt(coreConfig.XLEN.W))
-      val write_back = new Bundle {
-        val rd = Output(UInt(coreConfig.RegAddrWidth.W))
-        val data = Output(UInt(coreConfig.XLEN.W))
-      }
+      val wb = new WriteBackIO
     }
   })
 
@@ -57,9 +51,9 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
   io.out.mem.addr := RegEnable(io.in.mem.addr, !io.stall)
   io.out.mem.wdata := RegEnable(io.in.mem.wdata, !io.stall)
 
-  io.out.write_back.rd :=
-    RegEnable(Mux(io.in_valid, io.in.write_back.rd, 0.U), 0.U, !io.stall)
-  io.out.write_back.data := RegEnable(io.in.write_back.data, !io.stall)
+  io.out.wb.rd := 
+    RegEnable(Mux(io.in_valid, io.in.wb.rd, 0.U), 0.U, !io.stall)
+  io.out.wb.data := RegEnable(io.in.wb.data, !io.stall)
 
   io.stall := false.B
   switch(state) {
@@ -72,7 +66,7 @@ class EX_MEM(coreConfig: CoreConfig) extends Module {
     is(1.U) {
       state := 0.U
       io.out.mem.en := false.B
-      io.out.write_back.data := io.out.mem_rdata
+      io.out.wb.data := io.out.mem_rdata
     }
   }
 }

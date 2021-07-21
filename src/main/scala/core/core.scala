@@ -2,15 +2,16 @@ package rvcore
 
 import chisel3._
 import chisel3.util._
-import utils.Logger.Debug
+import chisel3.util.experimental.BoringUtils
+import utils.Logger._
 
 import device.RAM.RamIo
 
-class RvCore(coreConfig: CoreConfig) extends Module {
+class RvCore(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val ram = new RamIo(coreConfig.XLEN, coreConfig.XLEN / 8)
     val debug =
-      if (coreConfig.DebugPin) Some(new Bundle {
+      if (coreConfig.DebugPort) Some(new Bundle {
         val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
         val if_pc = Output(UInt(coreConfig.XLEN.W))
         val if_instr = Output(UInt(coreConfig.InstrLen.W))
@@ -20,18 +21,18 @@ class RvCore(coreConfig: CoreConfig) extends Module {
 
   val pc = Wire(UInt(coreConfig.XLEN.W))
 
-  val regs = Module(new RegFile(coreConfig))
+  val regs = Module(new RegFile)
 
-  val ifu = Module(new IF(coreConfig))
-  val idu = Module(new ID(coreConfig))
-  val id_ex = Module(new ID_EX(coreConfig))
-  val exu = Module(new EX(coreConfig))
-  val ex_mem = Module(new EX_MEM(coreConfig))
-  val memu = Module(new MEM(coreConfig))
-  val mem_wb = Module(new MEM_WB(coreConfig))
-  val wbu = Module(new WB(coreConfig))
+  val ifu = Module(new IF)
+  val idu = Module(new ID)
+  val id_ex = Module(new ID_EX)
+  val exu = Module(new EX)
+  val ex_mem = Module(new EX_MEM)
+  val memu = Module(new MEM)
+  val mem_wb = Module(new MEM_WB)
+  val wbu = Module(new WB)
 
-  val ram_mux = Module(new RamMux(coreConfig))
+  val ram_mux = Module(new RamMux)
   ram_mux.io.ram_io <> io.ram
 
   val stall = Wire(Bool())
@@ -57,6 +58,10 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   ifu.io.flush := flush
   ifu.io.in.pc := pc
   ifu.io.if_io <> ram_mux.io.if_io
+  if (coreConfig.DebugPort) {
+    BoringUtils.addSource(ifu.io.out.pc, "IF_pc")
+    BoringUtils.addSource(ifu.io.out.instr, "IF_instr")
+  }
   // Debug(
   //   ifu.io.if_io.en,
   //   "IF: fetch pc=0x%x 0x%x\n",
@@ -82,7 +87,7 @@ class RvCore(coreConfig: CoreConfig) extends Module {
     idu.io.out.ex.rs2,
     idu.io.out.mem.en,
     idu.io.out.mem.rw,
-    idu.io.out.write_back.rd
+    idu.io.out.wb.rd
   )
 
   id_ex.io.stall := stall
@@ -91,6 +96,8 @@ class RvCore(coreConfig: CoreConfig) extends Module {
 
   exu.io.in_valid := id_ex.io.out_valid
   exu.io.in := id_ex.io.out
+  exu.io.forward(0) := ex_mem.io.out.wb
+  exu.io.forward(1) := mem_wb.io.out.wb
   Debug(
     id_ex.io.out_valid,
     "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",
@@ -105,18 +112,16 @@ class RvCore(coreConfig: CoreConfig) extends Module {
     exu.io.out.mem.en,
     exu.io.out.mem.rw,
     exu.io.out.mem.addr,
-    exu.io.out.write_back.rd,
-    exu.io.out.write_back.data
+    exu.io.out.wb.rd,
+    exu.io.out.wb.data
   )
 
   // ex_mem.io.stall := stall
   ex_mem.io.in_valid := id_ex.io.out_valid
   ex_mem.io.in := exu.io.out
-  exu.io.forward(0) := ex_mem.io.out.write_back
   ex_mem.io.out.mem_rdata := memu.io.out.rdata
 
   memu.io.in.mem := ex_mem.io.out.mem
-  memu.io.in.write_back := ex_mem.io.out.write_back
   memu.io.mem_io <> ram_mux.io.mem_io
   Debug(
     ex_mem.io.out_valid,
@@ -132,22 +137,21 @@ class RvCore(coreConfig: CoreConfig) extends Module {
   mem_wb.io.stall := stall
   mem_wb.io.in_valid := ex_mem.io.out_valid
   mem_wb.io.in.pc := ex_mem.io.out.pc
-  mem_wb.io.in.write_back := memu.io.out.write_back
+  mem_wb.io.in.wb := ex_mem.io.out.wb
 
   wbu.io.stall := stall
   wbu.io.in_valid := mem_wb.io.out_valid
   wbu.io.in := mem_wb.io.out
-  regs.io.wport := wbu.io.reg_io
-  exu.io.forward(1) := mem_wb.io.out.write_back
+  regs.io.wb := wbu.io.reg_wb
   Debug(
     mem_wb.io.out_valid,
     "WB in: pc=%x reg%d=%x\n",
     mem_wb.io.out.pc,
-    mem_wb.io.out.write_back.rd,
-    mem_wb.io.out.write_back.data
+    mem_wb.io.out.wb.rd,
+    mem_wb.io.out.wb.data
   )
 
-  if (coreConfig.DebugPin) {
+  if (coreConfig.DebugPort) {
     io.debug.get.reg := regs.io.debug.get.reg
     io.debug.get.if_pc := ifu.io.out.pc
     io.debug.get.if_instr := ifu.io.out.instr

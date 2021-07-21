@@ -24,7 +24,7 @@ class SimTop extends Module {
     })
   }
   val ram = Module(new RAMHelper)
-  val rvcore = Module(new RvCore(new RV64ICoreConfig{
+  val rvcore = Module(new RvCore()(new RV64ICoreConfig{
     override val DiffTest = true
   }))
 

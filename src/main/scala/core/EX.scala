@@ -25,7 +25,7 @@ object AluFn {
   val bits = 4
 }
 
-class Alu(coreConfig: CoreConfig) extends Module {
+class Alu(implicit coreConfig: CoreConfig) extends Module {
   require(coreConfig.XLEN == 32 || coreConfig.XLEN == 64)
   private val shift_op2_len = coreConfig.XLEN match {
     case 32 => 5; case 64 => 6
@@ -89,7 +89,7 @@ class Alu(coreConfig: CoreConfig) extends Module {
   io.out := Mux(op32, SignExt(res(31, 0), coreConfig.XLEN), res)
 }
 
-class EX(coreConfig: CoreConfig) extends Module {
+class EX(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in_valid = Input(Bool())
     val in = new Bundle {
@@ -113,18 +113,10 @@ class EX(coreConfig: CoreConfig) extends Module {
         val unsigned = Input(Bool())
         val wWidth = Input(UInt(3.W))
       }
-      val write_back = new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-      }
+      val wb = Flipped(new WriteBackIO)
     }
 
-    val forward = Vec(
-      2,
-      new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-        val data = Input(UInt(coreConfig.XLEN.W))
-      }
-    )
+    val forward = Vec(2, Flipped(new WriteBackIO))
 
     val out = new Bundle {
       val pc = Output(UInt(coreConfig.XLEN.W))
@@ -138,7 +130,7 @@ class EX(coreConfig: CoreConfig) extends Module {
         val addr = Output(UInt(coreConfig.XLEN.W))
         val wdata = Output(UInt(coreConfig.XLEN.W))
       }
-      val write_back = new Bundle {
+      val wb = new Bundle {
         val rd = Output(UInt(coreConfig.RegAddrWidth.W))
         val data = Output(UInt(coreConfig.XLEN.W))
       }
@@ -157,7 +149,7 @@ class EX(coreConfig: CoreConfig) extends Module {
     res
   }
 
-  val alu = Module(new Alu(coreConfig))
+  val alu = Module(new Alu)
   alu.io.in.fn := io.in.ex.fn
   alu.io.in.op32 := io.in.ex.op32
   val rop1 = handleForwarding(io.in.ex.rs1, io.in.ex.op1)
@@ -182,14 +174,14 @@ class EX(coreConfig: CoreConfig) extends Module {
   io.out.mem.addr := alu.io.out
   io.out.mem.wdata := rop2
 
-  io.out.write_back.rd := io.in.write_back.rd
-  io.out.write_back.data := alu.io.out
+  io.out.wb.rd := io.in.wb.rd
+  io.out.wb.data := alu.io.out
 
   io.out.pc := io.in.pc
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
   when(io.in_valid && io.in.ex.is_jump) {
-    io.out.write_back.data := io.in.ex.imm
+    io.out.wb.data := io.in.ex.imm
     when(io.in.predicted_pc =/= io.out.jump_pc) {
       io.out.prediction_failure := true.B
     }

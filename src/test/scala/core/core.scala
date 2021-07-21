@@ -3,6 +3,7 @@ package rvcore
 import org.scalatest._
 import chiseltest._
 import chisel3._
+import chisel3.util.experimental.BoringUtils
 
 import firrtl.FileUtils
 import java.io._
@@ -12,11 +13,14 @@ import device._
 class CoreTest extends FreeSpec with ChiselScalatestTester {
   class ScalaTestTop(coreConfig: CoreConfig, memoryFile: String)
       extends Module {
-    val io = IO(new Bundle {
+    class DiffTestIO extends Bundle {
       val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
       val if_pc = Output(UInt(coreConfig.XLEN.W))
       val if_instr = Output(UInt(coreConfig.InstrLen.W))
-    })
+    }
+
+    val io = IO(new DiffTestIO)
+
     val ram = Module(
       new RAM(
         addrWidth = coreConfig.XLEN,
@@ -25,9 +29,15 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
         memoryFile = memoryFile
       )
     )
-    val core = Module(new RvCore(coreConfig))
+    val core = Module(new RvCore()(coreConfig))
     core.io.ram <> ram.io
-    io <> core.io.debug.get
+
+    io := DontCare
+    io.reg := core.io.debug.get.reg
+    
+    // BoringUtils.addSink(io_wire.reg, "RegFileRegs")
+    BoringUtils.addSink(io.if_pc, "IF_pc")
+    BoringUtils.addSink(io.if_instr, "IF_instr")
   }
 
   FileUtils.makeDirectory("test_run_dir/temp")
@@ -40,7 +50,8 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
     test(
       new ScalaTestTop(
         new RV64ICoreConfig {
-          override val DebugPin = true
+          override val InitialPC = BigInt("0")
+          override val DebugPort = true
         },
         memoryFile = s"test_run_dir/temp/${testcaseName}.hex"
       )

@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 trait CoreConfig {
-  val DebugPin = false
+  val DebugPort = false
   val DiffTest = false
   
   val CoreId = 0

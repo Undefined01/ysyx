@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import utils._
 
-class ID_EX(coreConfig: CoreConfig) extends Module {
+class ID_EX(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Input(Bool())
 
@@ -30,9 +30,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
         val unsigned = Input(Bool())
         val wWidth = Input(UInt(3.W))
       }
-      val write_back = new Bundle {
-        val rd = Input(UInt(coreConfig.RegAddrWidth.W))
-      }
+      val wb = Flipped(new WriteBackIO)
     }
 
     val out_valid = Output(Bool())
@@ -57,9 +55,7 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
         val unsigned = Output(Bool())
         val wWidth = Output(UInt(3.W))
       }
-      val write_back = new Bundle {
-        val rd = Output(UInt(coreConfig.RegAddrWidth.W))
-      }
+      val wb = new WriteBackIO
     }
   })
 
@@ -80,9 +76,5 @@ class ID_EX(coreConfig: CoreConfig) extends Module {
   io.out.mem.rw := RegEnable(io.in.mem.rw, !io.stall)
   io.out.mem.unsigned := RegEnable(io.in.mem.unsigned, !io.stall)
   io.out.mem.wWidth := RegEnable(io.in.mem.wWidth, !io.stall)
-  io.out.write_back.rd := Mux(
-    io.out_valid,
-    RegEnable(io.in.write_back.rd, !io.stall),
-    0.U
-  )
+  io.out.wb := RegEnable(io.in.wb, !io.stall)
 }
