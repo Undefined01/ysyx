@@ -13,8 +13,6 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
     val debug =
       if (coreConfig.DebugPort) Some(new Bundle {
         val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
-        val if_pc = Output(UInt(coreConfig.XLEN.W))
-        val if_instr = Output(UInt(coreConfig.InstrLen.W))
       })
       else None
   })
@@ -153,7 +151,5 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
 
   if (coreConfig.DebugPort) {
     io.debug.get.reg := regs.io.debug.get.reg
-    io.debug.get.if_pc := ifu.io.out.pc
-    io.debug.get.if_instr := ifu.io.out.instr
   }
 }

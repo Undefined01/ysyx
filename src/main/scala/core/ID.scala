@@ -34,24 +34,8 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
     val out = new Bundle {
       val pc = Output(UInt(coreConfig.XLEN.W))
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
-      val ex = new Bundle {
-        val fn = Output(UInt(AluFn.bits.W))
-        val op32 = Output(Bool())
-        val is_jump = Output(Bool())
-        val is_branch = Output(Bool())
-        val use_imm = Output(Bool())
-        val rs1 = Output(UInt(coreConfig.RegAddrWidth.W))
-        val rs2 = Output(UInt(coreConfig.RegAddrWidth.W))
-        val op1 = Output(UInt(coreConfig.XLEN.W))
-        val op2 = Output(UInt(coreConfig.XLEN.W))
-        val imm = Output(UInt(coreConfig.XLEN.W))
-      }
-      val mem = new Bundle {
-        val en = Output(Bool())
-        val rw = Output(Bool())
-        val unsigned = Output(Bool())
-        val wWidth = Output(UInt(3.W))
-      }
+      val ex = new ExIO
+      val mem = new MemIO
       val wb = new WriteBackIO
     }
   })
@@ -122,8 +106,8 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
 
   io.out.ex.op32 := false.B
 
+  io.out.mem := DontCare
   io.out.mem.en := false.B
-  io.out.mem.rw := DontCare
   io.out.mem.unsigned := funct3(2).asBool
   io.out.mem.wWidth := funct3(1, 0)
   io.out.wb.rd := 0.U

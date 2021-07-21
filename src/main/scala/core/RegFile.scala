@@ -27,16 +27,12 @@ class RegFile(implicit c: CoreConfig) extends Module {
     reg(io.wb.rd) := io.wb.data
   }
   for (i <- 0 until c.RegReadPorts) {
-    when(io.rport.raddr(i) === 0.U) {
-      io.rport.rdata(i) := 0.U
-    }.otherwise {
-      io.rport.rdata(i) := reg(io.rport.raddr(i))
-    }
+    io.rport.rdata(i) := reg(io.rport.raddr(i))
   }
 
   if (c.DebugPort) {
     io.debug.get.reg := reg
-    // BoringUtils.addSource(reg, "RegFile_Regs")
+    // BoringUtils.addSource(reg, "IF_pc1")
   }
   if (c.DiffTest) {
     val mod = Module(new difftest.DifftestArchIntRegState)

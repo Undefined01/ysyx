@@ -95,24 +95,8 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
     val in = new Bundle {
       val pc = Input(UInt(coreConfig.XLEN.W))
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
-      val ex = new Bundle {
-        val fn = Input(UInt(AluFn.bits.W))
-        val op32 = Input(Bool())
-        val is_jump = Input(Bool())
-        val is_branch = Input(Bool())
-        val use_imm = Input(Bool())
-        val rs1 = Input(UInt(coreConfig.RegAddrWidth.W))
-        val rs2 = Input(UInt(coreConfig.RegAddrWidth.W))
-        val op1 = Input(UInt(coreConfig.XLEN.W))
-        val op2 = Input(UInt(coreConfig.XLEN.W))
-        val imm = Input(UInt(coreConfig.XLEN.W))
-      }
-      val mem = new Bundle {
-        val en = Input(Bool())
-        val rw = Input(Bool())
-        val unsigned = Input(Bool())
-        val wWidth = Input(UInt(3.W))
-      }
+      val ex = Flipped(new ExIO)
+      val mem = Flipped(new MemIO)
       val wb = Flipped(new WriteBackIO)
     }
 
@@ -122,18 +106,8 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
       val pc = Output(UInt(coreConfig.XLEN.W))
       val prediction_failure = Output(Bool())
       val jump_pc = Output(UInt(coreConfig.XLEN.W))
-      val mem = new Bundle {
-        val en = Output(Bool())
-        val rw = Output(Bool())
-        val unsigned = Output(Bool())
-        val wWidth = Output(UInt(3.W))
-        val addr = Output(UInt(coreConfig.XLEN.W))
-        val wdata = Output(UInt(coreConfig.XLEN.W))
-      }
-      val wb = new Bundle {
-        val rd = Output(UInt(coreConfig.RegAddrWidth.W))
-        val data = Output(UInt(coreConfig.XLEN.W))
-      }
+      val mem = new MemIO
+      val wb = new WriteBackIO
     }
   })
 

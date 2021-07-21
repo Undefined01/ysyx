@@ -25,4 +25,5 @@ class MEM_WB(implicit coreConfig: CoreConfig) extends Module {
   io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
   io.out.pc := RegEnable(io.in.pc, !io.stall)
   io.out.wb := RegEnable(io.in.wb, !io.stall)
+  io.out.wb.set_valid(io.out_valid)
 }

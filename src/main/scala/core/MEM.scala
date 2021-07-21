@@ -7,14 +7,7 @@ import utils.Logger.Debug
 class MEM(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
-      val mem = new Bundle {
-        val en = Input(Bool())
-        val rw = Input(Bool())
-        val unsigned = Input(Bool())
-        val wWidth = Input(UInt(3.W))
-        val addr = Input(UInt(coreConfig.XLEN.W))
-        val wdata = Input(UInt(coreConfig.XLEN.W))
-      }
+      val mem = Flipped(new MemIO)
     }
     val mem_io = new Bundle {
       val en = Output(Bool())
