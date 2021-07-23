@@ -99,7 +99,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
   Debug(
     id_ex.io.out_valid,
     "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",
-    exu.io.in.pc,
+    exu.io.in.commit.pc,
     exu.io.in.ex.fn,
     exu.io.in.ex.rs1,
     exu.io.in.ex.rs2
@@ -124,7 +124,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
   Debug(
     ex_mem.io.out_valid,
     "MEM in: pc=0x%x mem=%d%d width=%d %x %x\n",
-    ex_mem.io.out.pc,
+    ex_mem.io.out.commit.pc,
     memu.io.in.mem.en,
     memu.io.in.mem.rw,
     memu.io.in.mem.wWidth,
@@ -134,7 +134,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
 
   mem_wb.io.stall := stall
   mem_wb.io.in_valid := ex_mem.io.out_valid
-  mem_wb.io.in.pc := ex_mem.io.out.pc
+  mem_wb.io.in.commit := ex_mem.io.out.commit
   mem_wb.io.in.wb := ex_mem.io.out.wb
 
   wbu.io.stall := stall
@@ -144,7 +144,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
   Debug(
     mem_wb.io.out_valid,
     "WB in: pc=%x reg%d=%x\n",
-    mem_wb.io.out.pc,
+    mem_wb.io.out.commit.pc,
     mem_wb.io.out.wb.rd,
     mem_wb.io.out.wb.data
   )

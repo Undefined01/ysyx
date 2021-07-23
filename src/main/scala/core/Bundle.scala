@@ -42,3 +42,8 @@ class WriteBackIO(implicit c: CoreConfig) extends Bundle {
     }
   }
 }
+
+class CommitIO(implicit c: CoreConfig) extends Bundle {
+  val pc = Output(UInt(c.XLEN.W))
+  val instr = Output(UInt(c.InstrLen.W))
+}

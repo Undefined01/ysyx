@@ -10,8 +10,8 @@ class ID_EX(implicit coreConfig: CoreConfig) extends Module {
 
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val pc = Input(UInt(coreConfig.XLEN.W))
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
+      val commit = Flipped(new CommitIO)
       val ex = Flipped(new ExIO)
       val mem = Flipped(new MemIO)
       val wb = Flipped(new WriteBackIO)
@@ -19,8 +19,8 @@ class ID_EX(implicit coreConfig: CoreConfig) extends Module {
 
     val out_valid = Output(Bool())
     val out = new Bundle {
-      val pc = Output(UInt(coreConfig.XLEN.W))
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
+      val commit = new CommitIO
       val ex = new ExIO
       val mem = new MemIO
       val wb = new WriteBackIO
@@ -28,8 +28,8 @@ class ID_EX(implicit coreConfig: CoreConfig) extends Module {
   })
 
   io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
-  io.out.pc := RegEnable(io.in.pc, !io.stall)
   io.out.predicted_pc := RegEnable(io.in.predicted_pc, !io.stall)
+  io.out.commit := RegEnable(io.in.commit, !io.stall)
 
   io.out.ex := RegEnable(io.in.ex, !io.stall)
 

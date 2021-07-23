@@ -32,8 +32,8 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
     }
 
     val out = new Bundle {
-      val pc = Output(UInt(coreConfig.XLEN.W))
       val predicted_pc = Output(UInt(coreConfig.XLEN.W))
+      val commit = new CommitIO
       val ex = new ExIO
       val mem = new MemIO
       val wb = new WriteBackIO
@@ -94,7 +94,9 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
 
   io.reg_io.raddr(0) := rs1
   io.reg_io.raddr(1) := rs2
-  io.out.pc := io.in.pc
+
+  io.out.commit.pc := io.in.pc
+  io.out.commit.instr := io.in.instr
 
   io.out.ex := DontCare
   io.out.ex.rs1 := rs1

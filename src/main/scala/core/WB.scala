@@ -8,7 +8,7 @@ class WB(implicit c: CoreConfig) extends Module {
     val stall = Input(Bool())
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val pc = Input(UInt(c.XLEN.W))
+      val commit = Flipped(new CommitIO)
       val wb = Flipped(new WriteBackIO)
     }
     val reg_wb = new WriteBackIO
@@ -24,8 +24,8 @@ class WB(implicit c: CoreConfig) extends Module {
     commit.io.index := 0.U
 
     commit.io.valid := io.in_valid && !io.stall
-    commit.io.pc := io.in.pc
-    commit.io.instr := DontCare // RegNext(io.in.instr)
+    commit.io.pc := io.in.commit.pc
+    commit.io.instr := io.in.commit.instr
     commit.io.skip := false.B
     commit.io.isRVC := false.B
     commit.io.scFailed := false.B
@@ -34,13 +34,35 @@ class WB(implicit c: CoreConfig) extends Module {
     commit.io.wdata := io.in.wb.data
     commit.io.wdest := io.in.wb.rd
 
-    // val trap = Module(new DifftestTrapEvent)
-    // trap.io.clock    := clock
-    // trap.io.coreid   := c.CoreId.U
-    // trap.io.valid    := nutcoretrap
-    // trap.io.code     := 0.U // GoodTrap
-    // trap.io.pc       := io.in.pc
-    // trap.io.cycleCnt := DontCare
-    // trap.io.instrCnt := DontCare
+    val trap = Module(new difftest.DifftestTrapEvent)
+    trap.io.clock    := clock
+    trap.io.coreid   := c.CoreId.U
+    trap.io.valid    := io.in.commit.instr === BigInt("0000006b", 16).U
+    trap.io.code     := 0.U // GoodTrap
+    trap.io.pc       := io.in.commit.pc
+    trap.io.cycleCnt := 0.U
+    trap.io.instrCnt := 0.U
+
+    val csr = Module(new difftest.DifftestCSRState)
+    csr.io.clock := clock
+    csr.io.coreid := c.CoreId.U
+    csr.io.mstatus := 0.U
+    csr.io.mcause := 0.U
+    csr.io.mepc := 0.U
+    csr.io.sstatus := 0.U
+    csr.io.scause := 0.U
+    csr.io.sepc := 0.U
+    csr.io.satp := 0.U
+    csr.io.mip := 0.U
+    csr.io.mie := 0.U
+    csr.io.mscratch := 0.U
+    csr.io.sscratch := 0.U
+    csr.io.mideleg := 0.U
+    csr.io.medeleg := 0.U
+    csr.io.mtval:= 0.U
+    csr.io.stval:= 0.U
+    csr.io.mtvec := 0.U
+    csr.io.stvec := 0.U
+    csr.io.priviledgeMode := 0.U
   }
 }

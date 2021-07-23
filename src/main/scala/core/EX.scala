@@ -93,8 +93,8 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val pc = Input(UInt(coreConfig.XLEN.W))
       val predicted_pc = Input(UInt(coreConfig.XLEN.W))
+      val commit = Flipped(new CommitIO)
       val ex = Flipped(new ExIO)
       val mem = Flipped(new MemIO)
       val wb = Flipped(new WriteBackIO)
@@ -103,9 +103,9 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
     val forward = Vec(2, Flipped(new WriteBackIO))
 
     val out = new Bundle {
-      val pc = Output(UInt(coreConfig.XLEN.W))
       val prediction_failure = Output(Bool())
       val jump_pc = Output(UInt(coreConfig.XLEN.W))
+      val commit = new CommitIO
       val mem = new MemIO
       val wb = new WriteBackIO
     }
@@ -151,7 +151,7 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
   io.out.wb.rd := io.in.wb.rd
   io.out.wb.data := alu.io.out
 
-  io.out.pc := io.in.pc
+  io.out.commit := io.in.commit
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
   when(io.in_valid && io.in.ex.is_jump) {
@@ -161,7 +161,7 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
     }
   }
   when(io.in_valid && io.in.ex.is_branch) {
-    io.out.jump_pc := Mux(alu.io.out(0).asBool, io.in.ex.imm, io.in.pc + 4.U)
+    io.out.jump_pc := Mux(alu.io.out(0).asBool, io.in.ex.imm, io.in.commit.pc + 4.U)
     Debug("Alu %d %x; Branch to %x\n", alu.io.in.fn, alu.io.out, io.out.jump_pc)
     when(io.in.predicted_pc =/= io.out.jump_pc) {
       io.out.prediction_failure := true.B

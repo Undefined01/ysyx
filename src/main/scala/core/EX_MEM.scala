@@ -11,14 +11,14 @@ class EX_MEM(implicit coreConfig: CoreConfig) extends Module {
 
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val pc = Input(UInt(coreConfig.XLEN.W))
+      val commit = Flipped(new CommitIO)
       val mem = Flipped(new MemIO)
       val wb = Flipped(new WriteBackIO)
     }
 
     val out_valid = Output(Bool())
     val out = new Bundle {
-      val pc = Output(UInt(coreConfig.XLEN.W))
+      val commit = new CommitIO
       val mem = new MemIO
       val mem_rdata = Input(UInt(coreConfig.XLEN.W))
       val wb = new WriteBackIO
@@ -28,7 +28,7 @@ class EX_MEM(implicit coreConfig: CoreConfig) extends Module {
   val state = RegInit(0.U(1.W))
 
   io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
-  io.out.pc := RegEnable(io.in.pc, !io.stall)
+  io.out.commit := RegEnable(io.in.commit, !io.stall)
 
   io.out.mem := RegEnable(io.in.mem, !io.stall)
   io.out.mem.set_valid(io.out_valid)
