@@ -10,7 +10,7 @@ nop
 nop
 nop
 # Magic number，用以识别结束
-.word 0x7f2a214b
+.word 0x0000006b
 
 # include 位置应该是开头，设置entry和_start符号
 .section entry

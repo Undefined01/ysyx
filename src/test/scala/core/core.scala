@@ -11,25 +11,25 @@ import java.io._
 import device._
 
 class CoreTest extends FreeSpec with ChiselScalatestTester {
-  class ScalaTestTop(coreConfig: CoreConfig, memoryFile: String)
+  class ScalaTestTop(c: CoreConfig, memoryFile: String)
       extends Module {
     class DiffTestIO extends Bundle {
-      val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
-      val if_pc = Output(UInt(coreConfig.XLEN.W))
-      val if_instr = Output(UInt(coreConfig.InstrLen.W))
+      val reg = Output(Vec(32, UInt(c.XLEN.W)))
+      val if_pc = Output(UInt(c.XLEN.W))
+      val if_instr = Output(UInt(c.InstrLen.W))
     }
 
     val io = IO(new DiffTestIO)
 
     val ram = Module(
       new RAM(
-        addrWidth = coreConfig.XLEN,
-        dataBytes = coreConfig.XLEN / 8,
-        depth = 40 * 1024 / coreConfig.XLEN,
+        addrWidth = c.XLEN,
+        dataBytes = c.XLEN / 8,
+        depth = 40 * 1024 / c.XLEN,
         memoryFile = memoryFile
       )
     )
-    val core = Module(new RvCore()(coreConfig))
+    val core = Module(new RvCore()(c))
     core.io.ram <> ram.io
 
     io := DontCare
@@ -65,7 +65,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
 
         val if_pc = c.io.if_pc.peek().litValue
         val if_instr = c.io.if_instr.peek().litValue
-        if (if_instr == 0x7f2a214b) {
+        if (if_instr == 0x0000006b) {
           trapped = true
           println(f"Hit good trap at 0x${if_pc}%x after ${i}%d steps")
 
