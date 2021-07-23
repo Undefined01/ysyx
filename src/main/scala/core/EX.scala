@@ -43,8 +43,8 @@ class Alu(implicit coreConfig: CoreConfig) extends Module {
 
   val fn = io.in.fn
   val op32 = io.in.op32
-  val op1 = Mux(op32, SignExt(io.in.op1(31, 0), coreConfig.XLEN), io.in.op1)
-  val op2 = Mux(op32, SignExt(io.in.op2(31, 0), coreConfig.XLEN), io.in.op2)
+  val op1 = io.in.op1
+  val op2 = io.in.op2
   val shift_op2 = Mux(op32, Cat(0.U(1.W), op2(4, 0)), op2(5, 0))
 
   val add = op1 + op2
@@ -55,8 +55,12 @@ class Alu(implicit coreConfig: CoreConfig) extends Module {
   val slt = ZeroExt(lt.asUInt, coreConfig.XLEN)
   val sltu = ZeroExt(ltu.asUInt, coreConfig.XLEN)
   val xor = op1 ^ op2
-  val srl = op1 >> shift_op2
-  val sra = (op1.asSInt >> shift_op2).asUInt
+  val srl_64 = op1 >> shift_op2
+  val srl_32 = op1(31, 0) >> shift_op2
+  val srl = Mux(op32, SignExt(srl_32, coreConfig.XLEN), srl_64)
+  val sra_64 = (op1.asSInt >> shift_op2).asUInt
+  val sra_32 = (op1(31, 0).asSInt >> shift_op2).asUInt
+  val sra = Mux(op32, SignExt(sra_32, coreConfig.XLEN), sra_64)
   val or = op1 | op2
   val and = op1 & op2
 
