@@ -5,7 +5,7 @@ import chisel3.util._
 import utils._
 import utils.Logger.Debug
 
-class EX_MEM(implicit coreConfig: CoreConfig) extends Module {
+class EX_MEM(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Output(Bool())
 
@@ -20,7 +20,7 @@ class EX_MEM(implicit coreConfig: CoreConfig) extends Module {
     val out = new Bundle {
       val commit = new CommitIO
       val mem = new MemIO
-      val mem_rdata = Input(UInt(coreConfig.XLEN.W))
+      val mem_rdata = Input(UInt(c.XLEN.W))
       val wb = new WriteBackIO
     }
   })

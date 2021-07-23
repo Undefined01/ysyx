@@ -4,13 +4,13 @@ import chisel3._
 import chisel3.util._
 import utils._
 
-class ID_EX(implicit coreConfig: CoreConfig) extends Module {
+class ID_EX(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Input(Bool())
 
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val predicted_pc = Input(UInt(coreConfig.XLEN.W))
+      val predicted_pc = Input(UInt(c.XLEN.W))
       val commit = Flipped(new CommitIO)
       val ex = Flipped(new ExIO)
       val mem = Flipped(new MemIO)
@@ -19,7 +19,7 @@ class ID_EX(implicit coreConfig: CoreConfig) extends Module {
 
     val out_valid = Output(Bool())
     val out = new Bundle {
-      val predicted_pc = Output(UInt(coreConfig.XLEN.W))
+      val predicted_pc = Output(UInt(c.XLEN.W))
       val commit = new CommitIO
       val ex = new ExIO
       val mem = new MemIO

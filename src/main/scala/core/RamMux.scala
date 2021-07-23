@@ -5,27 +5,27 @@ import chisel3.util._
 
 import device.RAM.{RamIo, PortDriver}
 
-class RamMux(implicit coreConfig: CoreConfig) extends Module {
+class RamMux(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val if_io = new Bundle {
       val valid = Output(Bool())
-      val raddr = Input(UInt(coreConfig.XLEN.W))
-      val rdata = Output(UInt(coreConfig.XLEN.W))
+      val raddr = Input(UInt(c.XLEN.W))
+      val rdata = Output(UInt(c.XLEN.W))
     }
     val mem_io = new Bundle {
       val en = Input(Bool())
       val rw = Input(Bool())
       val unsigned = Input(Bool())
       val wWidth = Input(UInt(3.W))
-      val addr = Input(UInt(coreConfig.XLEN.W))
-      val rdata = Output(UInt(coreConfig.XLEN.W))
-      val wdata = Input(UInt(coreConfig.XLEN.W))
+      val addr = Input(UInt(c.XLEN.W))
+      val rdata = Output(UInt(c.XLEN.W))
+      val wdata = Input(UInt(c.XLEN.W))
     }
-    val ram_io = new RamIo(coreConfig.XLEN, coreConfig.XLEN / 8)
+    val ram_io = new RamIo(c.XLEN, c.XLEN / 8)
   })
 
   val valid = RegNext(true.B, false.B)
-  val driver = Module(new PortDriver(coreConfig.XLEN, coreConfig.XLEN / 8))
+  val driver = Module(new PortDriver(c.XLEN, c.XLEN / 8))
 
   io.ram_io.en := true.B
   io.ram_io.raddr := driver.io.ram_ctrl.raddr

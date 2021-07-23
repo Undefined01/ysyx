@@ -5,7 +5,7 @@ import chisel3.util._
 import utils._
 import utils.Logger.Debug
 
-class MEM_WB(implicit coreConfig: CoreConfig) extends Module {
+class MEM_WB(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val stall = Input(Bool())
 

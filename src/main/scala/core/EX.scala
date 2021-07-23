@@ -25,9 +25,9 @@ object AluFn {
   val bits = 4
 }
 
-class Alu(implicit coreConfig: CoreConfig) extends Module {
-  require(coreConfig.XLEN == 32 || coreConfig.XLEN == 64)
-  private val shift_op2_len = coreConfig.XLEN match {
+class Alu(implicit c: CoreConfig) extends Module {
+  require(c.XLEN == 32 || c.XLEN == 64)
+  private val shift_op2_len = c.XLEN match {
     case 32 => 5; case 64 => 6
   }
 
@@ -35,10 +35,10 @@ class Alu(implicit coreConfig: CoreConfig) extends Module {
     val in = new Bundle {
       val fn = Input(UInt(AluFn.bits.W))
       val op32 = Input(Bool())
-      val op1 = Input(UInt(coreConfig.XLEN.W))
-      val op2 = Input(UInt(coreConfig.XLEN.W))
+      val op1 = Input(UInt(c.XLEN.W))
+      val op2 = Input(UInt(c.XLEN.W))
     }
-    val out = Output(UInt(coreConfig.XLEN.W))
+    val out = Output(UInt(c.XLEN.W))
   })
 
   val fn = io.in.fn
@@ -52,23 +52,23 @@ class Alu(implicit coreConfig: CoreConfig) extends Module {
   val sll = op1 << shift_op2
   val lt = op1.asSInt < op2.asSInt
   val ltu = op1 < op2
-  val slt = ZeroExt(lt.asUInt, coreConfig.XLEN)
-  val sltu = ZeroExt(ltu.asUInt, coreConfig.XLEN)
+  val slt = ZeroExt(lt.asUInt, c.XLEN)
+  val sltu = ZeroExt(ltu.asUInt, c.XLEN)
   val xor = op1 ^ op2
   val srl_64 = op1 >> shift_op2
   val srl_32 = op1(31, 0) >> shift_op2
-  val srl = Mux(op32, SignExt(srl_32, coreConfig.XLEN), srl_64)
+  val srl = Mux(op32, SignExt(srl_32, c.XLEN), srl_64)
   val sra_64 = (op1.asSInt >> shift_op2).asUInt
   val sra_32 = (op1(31, 0).asSInt >> shift_op2).asUInt
-  val sra = Mux(op32, SignExt(sra_32, coreConfig.XLEN), sra_64)
+  val sra = Mux(op32, SignExt(sra_32, c.XLEN), sra_64)
   val or = op1 | op2
   val and = op1 & op2
 
   val ne = xor.orR
-  val seq = ZeroExt((!ne).asUInt, coreConfig.XLEN)
-  val sne = ZeroExt(ne.asUInt, coreConfig.XLEN)
-  val sge = ZeroExt((!lt).asUInt, coreConfig.XLEN)
-  val sgeu = ZeroExt((!ltu).asUInt, coreConfig.XLEN)
+  val seq = ZeroExt((!ne).asUInt, c.XLEN)
+  val sne = ZeroExt(ne.asUInt, c.XLEN)
+  val sge = ZeroExt((!lt).asUInt, c.XLEN)
+  val sgeu = ZeroExt((!ltu).asUInt, c.XLEN)
 
   val res = MuxLookup(
     fn,
@@ -90,14 +90,14 @@ class Alu(implicit coreConfig: CoreConfig) extends Module {
       AluFn.SGEU.U -> sgeu
     )
   )
-  io.out := Mux(op32, SignExt(res(31, 0), coreConfig.XLEN), res)
+  io.out := Mux(op32, SignExt(res(31, 0), c.XLEN), res)
 }
 
-class EX(implicit coreConfig: CoreConfig) extends Module {
+class EX(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val predicted_pc = Input(UInt(coreConfig.XLEN.W))
+      val predicted_pc = Input(UInt(c.XLEN.W))
       val commit = Flipped(new CommitIO)
       val ex = Flipped(new ExIO)
       val mem = Flipped(new MemIO)
@@ -108,7 +108,7 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
 
     val out = new Bundle {
       val prediction_failure = Output(Bool())
-      val jump_pc = Output(UInt(coreConfig.XLEN.W))
+      val jump_pc = Output(UInt(c.XLEN.W))
       val commit = new CommitIO
       val mem = new MemIO
       val wb = new WriteBackIO

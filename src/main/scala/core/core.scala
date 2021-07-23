@@ -7,17 +7,17 @@ import utils.Logger._
 
 import device.RAM.RamIo
 
-class RvCore(implicit coreConfig: CoreConfig) extends Module {
+class RvCore(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
-    val ram = new RamIo(coreConfig.XLEN, coreConfig.XLEN / 8)
+    val ram = new RamIo(c.XLEN, c.XLEN / 8)
     val debug =
-      if (coreConfig.DebugPort) Some(new Bundle {
-        val reg = Output(Vec(32, UInt(coreConfig.XLEN.W)))
+      if (c.DebugPort) Some(new Bundle {
+        val reg = Output(Vec(32, UInt(c.XLEN.W)))
       })
       else None
   })
 
-  val pc = Wire(UInt(coreConfig.XLEN.W))
+  val pc = Wire(UInt(c.XLEN.W))
 
   val regs = Module(new RegFile)
 
@@ -41,7 +41,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
   stall := ex_mem.io.stall
   flush := exu.io.out.prediction_failure
 
-  pc := coreConfig.InitialPC.U
+  pc := c.InitialPC.U
   when(ifu.io.out.valid) {
     pc := idu.io.out.predicted_pc
   }
@@ -56,7 +56,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
   ifu.io.flush := flush
   ifu.io.in.pc := pc
   ifu.io.if_io <> ram_mux.io.if_io
-  if (coreConfig.DebugPort) {
+  if (c.DebugPort) {
     BoringUtils.addSource(ifu.io.out.pc, "IF_pc")
     BoringUtils.addSource(ifu.io.out.instr, "IF_instr")
   }
@@ -149,7 +149,7 @@ class RvCore(implicit coreConfig: CoreConfig) extends Module {
     mem_wb.io.out.wb.data
   )
 
-  if (coreConfig.DebugPort) {
+  if (c.DebugPort) {
     io.debug.get.reg := regs.io.debug.get.reg
   }
 }

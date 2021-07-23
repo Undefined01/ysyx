@@ -19,20 +19,20 @@ object DecodeConstant {
   val Op32 = BigInt("0111011", 2)
 }
 
-class ID(implicit coreConfig: CoreConfig) extends Module {
+class ID(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
-      val pc = Input(UInt(coreConfig.XLEN.W))
-      val instr = Input(UInt(coreConfig.InstrLen.W))
+      val pc = Input(UInt(c.XLEN.W))
+      val instr = Input(UInt(c.InstrLen.W))
     }
 
     val reg_io = new Bundle {
-      val raddr = Output(Vec(2, UInt(coreConfig.RegAddrWidth.W)))
-      val rdata = Input(Vec(2, UInt(coreConfig.XLEN.W)))
+      val raddr = Output(Vec(2, UInt(c.RegAddrWidth.W)))
+      val rdata = Input(Vec(2, UInt(c.XLEN.W)))
     }
 
     val out = new Bundle {
-      val predicted_pc = Output(UInt(coreConfig.XLEN.W))
+      val predicted_pc = Output(UInt(c.XLEN.W))
       val commit = new CommitIO
       val ex = new ExIO
       val mem = new MemIO
@@ -51,16 +51,16 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
   val rs1 = instr(19, 15)
   val rs2 = instr(24, 20)
 
-  val I_imm = SignExt(instr(31, 20), coreConfig.XLEN)
-  val S_imm = SignExt(Cat(instr(31, 25), instr(11, 7)), coreConfig.XLEN)
+  val I_imm = SignExt(instr(31, 20), c.XLEN)
+  val S_imm = SignExt(Cat(instr(31, 25), instr(11, 7)), c.XLEN)
   val B_imm = SignExt(
     Cat(instr(31), instr(7), instr(30, 25), instr(11, 8), 0.U(1.W)),
-    coreConfig.XLEN
+    c.XLEN
   )
-  val U_imm = SignExt(Cat(instr(31, 12), 0.U(12.W)), coreConfig.XLEN)
+  val U_imm = SignExt(Cat(instr(31, 12), 0.U(12.W)), c.XLEN)
   val J_imm = SignExt(
     Cat(instr(31), instr(19, 12), instr(20), instr(30, 21), 0.U(1.W)),
-    coreConfig.XLEN
+    c.XLEN
   )
 
   def I_type() = {
