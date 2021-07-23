@@ -134,16 +134,16 @@ class EX(implicit coreConfig: CoreConfig) extends Module {
   val rop2 = handleForwarding(io.in.ex.rs2, io.in.ex.op2)
   alu.io.in.op1 := rop1
   alu.io.in.op2 := Mux(io.in.ex.use_imm, io.in.ex.imm, rop2)
-  // Debug(
-  //   "EX fn=%d %d=%x %d=%x ; %x %x\n",
-  //   alu.io.in.fn,
-  //   io.in.ex.rs1,
-  //   io.in.ex.op1,
-  //   io.in.ex.rs2,
-  //   io.in.ex.op2,
-  //   alu.io.in.op1,
-  //   alu.io.in.op2
-  // )
+  Debug(
+    "EX fn=%d %d=%x %d=%x ; %x %x\n",
+    alu.io.in.fn,
+    io.in.ex.rs1,
+    io.in.ex.op1,
+    io.in.ex.rs2,
+    io.in.ex.op2,
+    alu.io.in.op1,
+    alu.io.in.op2
+  )
 
   io.out.mem.en := io.in.mem.en
   io.out.mem.rw := io.in.mem.rw

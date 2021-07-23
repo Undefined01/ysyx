@@ -44,6 +44,7 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
 
   val opcode = instr(6, 0)
   val funct3 = instr(14, 12)
+  val funct6 = instr(31, 26)
   val funct7 = instr(31, 25)
 
   val rd = instr(11, 7)
@@ -120,11 +121,12 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
   switch(opcode) {
     is(DecodeConstant.OpImm.U) {
       I_type()
-      io.out.ex.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
+      val is_sra = funct3 === "b101".U && funct6 =/= 0.U
+      io.out.ex.fn := Cat(is_sra.asUInt, funct3)
     }
     is(DecodeConstant.Op.U) {
       R_type()
-      io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
+      io.out.ex.fn := Cat((funct6 =/= 0.U).asUInt, funct3)
     }
     is(DecodeConstant.Lui.U) {
       U_type()
@@ -183,7 +185,8 @@ class ID(implicit coreConfig: CoreConfig) extends Module {
     is(DecodeConstant.OpImm32.U) {
       I_type()
       io.out.ex.op32 := true.B
-      io.out.ex.fn := Cat((funct3 === 5.U && funct7 =/= 0.U).asUInt, funct3)
+      val is_sra = funct3 === "b101".U && funct7 =/= 0.U
+      io.out.ex.fn := Cat(is_sra.asUInt, funct3)
     }
     is(DecodeConstant.Op32.U) {
       R_type()
