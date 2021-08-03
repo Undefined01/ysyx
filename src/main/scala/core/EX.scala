@@ -156,6 +156,12 @@ class EX(implicit c: CoreConfig) extends Module {
   io.out.wb.data := alu.io.out
 
   io.out.commit := io.in.commit
+  when(io.in.ex.is_putch) {
+    io.out.commit.putch := rop1(7, 0);
+  }.otherwise {
+    io.out.commit.putch := 0.U;
+  }
+
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
   when(io.in_valid && io.in.ex.is_jump) {
@@ -165,7 +171,11 @@ class EX(implicit c: CoreConfig) extends Module {
     }
   }
   when(io.in_valid && io.in.ex.is_branch) {
-    io.out.jump_pc := Mux(alu.io.out(0).asBool, io.in.ex.imm, io.in.commit.pc + 4.U)
+    io.out.jump_pc := Mux(
+      alu.io.out(0).asBool,
+      io.in.ex.imm,
+      io.in.commit.pc + 4.U
+    )
     Debug("Alu %d %x; Branch to %x\n", alu.io.in.fn, alu.io.out, io.out.jump_pc)
     when(io.in.predicted_pc =/= io.out.jump_pc) {
       io.out.prediction_failure := true.B

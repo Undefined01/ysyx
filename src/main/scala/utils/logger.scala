@@ -7,6 +7,7 @@ import java.awt.print.Printable
 
 object Logger {
   val LogFilter = LogLevel.WARN
+  // val LogFilter = LogLevel.DEBUG
 
   object LogLevel extends Enumeration {
     type LogLevel = Value

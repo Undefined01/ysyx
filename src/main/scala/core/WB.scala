@@ -64,5 +64,10 @@ class WB(implicit c: CoreConfig) extends Module {
     csr.io.mtvec := 0.U
     csr.io.stvec := 0.U
     csr.io.priviledgeMode := 0.U
+
+    when(io.in.commit.putch =/= 0.U) {
+      commit.io.skip := true.B;
+      printf("%c", io.in.commit.putch);
+    }
   }
 }

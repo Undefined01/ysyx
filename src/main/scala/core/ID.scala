@@ -17,6 +17,9 @@ object DecodeConstant {
 
   val OpImm32 = BigInt("0011011", 2)
   val Op32 = BigInt("0111011", 2)
+
+  val Trap = BigInt("1011011", 2)
+  val Putch = BigInt("1111011", 2)
 }
 
 class ID(implicit c: CoreConfig) extends Module {
@@ -98,6 +101,7 @@ class ID(implicit c: CoreConfig) extends Module {
 
   io.out.commit.pc := io.in.pc
   io.out.commit.instr := io.in.instr
+  io.out.commit.putch := DontCare
 
   io.out.ex := DontCare
   io.out.ex.rs1 := rs1
@@ -106,6 +110,7 @@ class ID(implicit c: CoreConfig) extends Module {
   io.out.ex.op2 := io.reg_io.rdata(1)
   io.out.ex.is_jump := false.B
   io.out.ex.is_branch := false.B
+  io.out.ex.is_putch := false.B
 
   io.out.ex.op32 := false.B
 
@@ -192,6 +197,10 @@ class ID(implicit c: CoreConfig) extends Module {
       R_type()
       io.out.ex.op32 := true.B
       io.out.ex.fn := Cat((funct7 =/= 0.U).asUInt, funct3)
+    }
+    is(DecodeConstant.Putch.U) {
+      io.out.ex.rs1 := 10.U // a0
+      io.out.ex.is_putch := true.B
     }
   }
 }

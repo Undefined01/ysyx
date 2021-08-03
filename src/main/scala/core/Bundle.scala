@@ -9,6 +9,7 @@ class ExIO(implicit c: CoreConfig) extends Bundle {
   val op32 = Output(Bool())
   val is_jump = Output(Bool())
   val is_branch = Output(Bool())
+  val is_putch = Output(Bool())
   val use_imm = Output(Bool())
   val rs1 = Output(UInt(c.RegAddrWidth.W))
   val rs2 = Output(UInt(c.RegAddrWidth.W))
@@ -46,4 +47,5 @@ class WriteBackIO(implicit c: CoreConfig) extends Bundle {
 class CommitIO(implicit c: CoreConfig) extends Bundle {
   val pc = Output(UInt(c.XLEN.W))
   val instr = Output(UInt(c.InstrLen.W))
+  val putch = Output(UInt(8.W))
 }
