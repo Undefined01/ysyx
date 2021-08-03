@@ -2,6 +2,7 @@ package rvcore
 
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.BoringUtils
 
 class WB(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
@@ -18,6 +19,9 @@ class WB(implicit c: CoreConfig) extends Module {
   io.reg_wb.set_valid(io.in_valid)
 
   if (c.DiffTest) {
+    val reg_a0 = WireInit(0.U(64.W))
+    BoringUtils.addSink(reg_a0, "RegFile_a0")
+
     val commit = Module(new difftest.DifftestInstrCommit)
     commit.io.clock := clock
     commit.io.coreid := c.CoreId.U
@@ -35,11 +39,11 @@ class WB(implicit c: CoreConfig) extends Module {
     commit.io.wdest := io.in.wb.rd
 
     val trap = Module(new difftest.DifftestTrapEvent)
-    trap.io.clock    := clock
-    trap.io.coreid   := c.CoreId.U
-    trap.io.valid    := io.in.commit.instr === BigInt("0000006b", 16).U
-    trap.io.code     := 0.U // GoodTrap
-    trap.io.pc       := io.in.commit.pc
+    trap.io.clock := clock
+    trap.io.coreid := c.CoreId.U
+    trap.io.valid := io.in.commit.instr === BigInt("0000006b", 16).U
+    trap.io.code := reg_a0
+    trap.io.pc := io.in.commit.pc
     trap.io.cycleCnt := 0.U
     trap.io.instrCnt := 0.U
 
@@ -59,15 +63,15 @@ class WB(implicit c: CoreConfig) extends Module {
     csr.io.sscratch := 0.U
     csr.io.mideleg := 0.U
     csr.io.medeleg := 0.U
-    csr.io.mtval:= 0.U
-    csr.io.stval:= 0.U
+    csr.io.mtval := 0.U
+    csr.io.stval := 0.U
     csr.io.mtvec := 0.U
     csr.io.stvec := 0.U
     csr.io.priviledgeMode := 0.U
 
     when(io.in.commit.putch =/= 0.U) {
       commit.io.skip := true.B;
-      printf("%c", io.in.commit.putch);
+      printf("%c", reg_a0);
     }
   }
 }

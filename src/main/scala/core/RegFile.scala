@@ -31,13 +31,18 @@ class RegFile(implicit c: CoreConfig) extends Module {
   }
 
   if (c.DebugPort) {
+    // val reg_all = WireInit(VecInit.tabulate(32) { x => reg })
     io.debug.get.reg := reg
-    // BoringUtils.addSource(reg, "IF_pc1")
+    // println("Elaborate RegFile!!!!!!!!!!!!!!!\n")
+    // BoringUtils.addSource(reg_all, "RegFile_regs")
   }
   if (c.DiffTest) {
-    val mod = Module(new difftest.DifftestArchIntRegState)
-    mod.io.clock := clock
-    mod.io.coreid := c.CoreId.U
-    mod.io.gpr := reg
+    val regState = Module(new difftest.DifftestArchIntRegState)
+    regState.io.clock := clock
+    regState.io.coreid := c.CoreId.U
+    regState.io.gpr := reg
+
+    val a0 = WireInit(reg(10))
+    BoringUtils.addSource(a0, "RegFile_a0")
   }
 }

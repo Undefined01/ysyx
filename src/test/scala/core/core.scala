@@ -35,7 +35,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
     io := DontCare
     io.reg := core.io.debug.get.reg
     
-    // BoringUtils.addSink(io_wire.reg, "RegFileRegs")
+    // BoringUtils.addSink(io.reg, "RegFile_regs")
     BoringUtils.addSink(io.if_pc, "IF_pc")
     BoringUtils.addSink(io.if_instr, "IF_instr")
   }
