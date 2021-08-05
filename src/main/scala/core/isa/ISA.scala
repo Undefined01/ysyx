@@ -72,5 +72,5 @@ abstract class Decoder {
 }
 
 abstract class InstructionSet {
-  val instrSet: Array[(BitPat, Decoder)]
+  val instrSet: List[(BitPat, Decoder)]
 }

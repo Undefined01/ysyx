@@ -11,7 +11,7 @@ object custom extends InstructionSet {
       new DefaultDecodeInfo(pc, instr)
   }
 
-  val instrSet: Array[(BitPat, Decoder)] = Array(
+  val instrSet: List[(BitPat, Decoder)] = List(
     // Trap
     (BitPat("b?????????????????????????_1101011"), TrapDecoder)
   )
@@ -37,7 +37,7 @@ object rv64i_opimm extends InstructionSet {
       }
   }
 
-  val instrSet: Array[(BitPat, Decoder)] = Array(
+  val instrSet: List[(BitPat, Decoder)] = List(
     // ADDI
     (BitPat("b????????????_?????_000_?????_0010011"), OpImmArithDecoder),
     // SLLI
@@ -68,7 +68,7 @@ object rv64i_op extends InstructionSet {
       }
   }
 
-  val instrSet: Array[(BitPat, Decoder)] = Array(
+  val instrSet: List[(BitPat, Decoder)] = List(
     // ADD
     (BitPat("b0000000_?????_?????_000_?????_0110011"), OpFunctDecoder),
     // SUB
@@ -92,6 +92,40 @@ object rv64i_op extends InstructionSet {
   )
 }
 
+object rv64i_u extends InstructionSet {
+  protected object LuiDecoder extends Decoder {
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
+      new DefaultDecodeInfo(pc, instr) {
+        bits.use_op1 := true.B
+        bits.ex.rs1 := 0.U
+        bits.ex.op1 := 0.U
+        bits.ex.use_imm := true.B
+        bits.ex.imm := U_imm
+        bits.ex.fn := AluFn.ADD.U
+        bits.wb.rd := rd
+      }
+  }
+  protected object AuiPcDecoder extends Decoder {
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
+      new DefaultDecodeInfo(pc, instr) {
+        bits.use_op1 := true.B
+        bits.ex.rs1 := 0.U
+        bits.ex.op1 := pc
+        bits.ex.use_imm := true.B
+        bits.ex.imm := U_imm
+        bits.ex.fn := AluFn.ADD.U
+        bits.wb.rd := rd
+      }
+  }
+
+  val instrSet: List[(BitPat, Decoder)] = List(
+    // LUI
+    (BitPat("b????????????????????_?????_0110111"), LuiDecoder),
+    // AUIPC
+    (BitPat("b????????????????????_?????_0010111"), AuiPcDecoder)
+  )
+}
+
 object rv64i extends InstructionSet {
-  val instrSet = rv64i_opimm.instrSet ++ rv64i_op.instrSet ++ custom.instrSet
+  val instrSet = List(rv64i_opimm, rv64i_op, rv64i_u, custom).map(_.instrSet).flatten
 }
