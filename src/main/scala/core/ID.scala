@@ -36,6 +36,7 @@ class ID(implicit c: CoreConfig) extends Module {
     }
 
     val out = new Bundle {
+      val has_error = Output(Bool())
       val predicted_pc = Output(UInt(c.XLEN.W))
       val commit = Output(new CommitIO)
       val ex = Output(new ExIO)
@@ -54,15 +55,12 @@ class ID(implicit c: CoreConfig) extends Module {
   )
   val decodeInfo = decodeInfoList.asTypeOf(new DecodeInfoBundle)
 
-  when(decodeInfo.has_error) {
-    printf("!!! DECODE ERROR !!!\n");
-  }
-
   io.reg_io.raddr(0) := decodeInfo.ex.rs1
   io.reg_io.raddr(1) := decodeInfo.ex.rs2
   val rop1 = WireInit(io.reg_io.rdata(0))
   val rop2 = WireInit(io.reg_io.rdata(1))
 
+  io.out.has_error := decodeInfo.has_error
   io.out.predicted_pc := pc + 4.U
   io.out.commit := decodeInfo.commit
   io.out.ex := decodeInfo.ex

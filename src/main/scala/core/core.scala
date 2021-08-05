@@ -87,6 +87,12 @@ class RvCore(implicit c: CoreConfig) extends Module {
     idu.io.out.mem.rw,
     idu.io.out.wb.rd
   )
+  Warn(
+    ifu.io.out.valid && idu.io.out.has_error,
+    "!!! DECODE ERROR !!!  pc=%x instr=%x\n",
+    idu.io.in.pc,
+    idu.io.in.instr
+  )
 
   id_ex.io.stall := stall
   id_ex.io.in_valid := ifu.io.out.valid
