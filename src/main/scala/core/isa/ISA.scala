@@ -4,39 +4,23 @@ import chisel3._
 import chisel3.util._
 import utils._
 
-abstract class DecodeInfo {
-  val has_error: Bool
+class DecodeInfoBundle extends Bundle {
+  val has_error = Bool()
 
-  val is_jump: Bool
-  val is_branch: Bool
+  val is_jump = Bool()
+  val is_branch = Bool()
 
-  val use_imm: Bool
-  val op1: UInt
-  val op2: UInt
-  val imm: UInt
-  val alufn: UInt
+  val use_imm = Bool()
+  val op1 = UInt(64.W)
+  val op2 = UInt(64.W)
+  val imm = UInt(64.W)
+  val alufn = UInt(64.W)
 
-  val wb_rd: UInt
-
-  def toList =
-    has_error :: is_jump :: is_branch :: use_imm :: op1 :: op2 :: imm :: alufn :: wb_rd :: Nil
+  val wb_rd = UInt(64.W)
 }
-object DecodeInfo {
-  def fromList[T <: Data](list: List[T]) = {
-    val _has_error :: _is_jump :: _is_branch :: _use_imm :: _op1 :: _op2 :: _imm :: _alufn :: _wb_rd :: Nil =
-      list
-    new DecodeInfo {
-      val has_error = _has_error.asInstanceOf[Bool]
-      val is_jump = _is_jump.asInstanceOf[Bool]
-      val is_branch = _is_branch.asInstanceOf[Bool]
-      val use_imm = _use_imm.asInstanceOf[Bool]
-      val op1 = _op1.asInstanceOf[UInt]
-      val op2 = _op2.asInstanceOf[UInt]
-      val imm = _imm.asInstanceOf[UInt]
-      val alufn = _alufn.asInstanceOf[UInt]
-      val wb_rd = _wb_rd.asInstanceOf[UInt]
-    }
-  }
+
+class DecodeInfo {
+  val bits = Wire(new DecodeInfoBundle)
 }
 
 class DefaultDecodeInfo(pc: UInt, instr: UInt) extends DecodeInfo {
@@ -61,18 +45,18 @@ class DefaultDecodeInfo(pc: UInt, instr: UInt) extends DecodeInfo {
     64
   )
 
-  val has_error = false.B
+  bits.has_error := false.B
 
-  val is_jump = false.B
-  val is_branch = false.B
+  bits.is_jump := false.B
+  bits.is_branch := false.B
 
-  val use_imm = false.B
-  val op1 = DontCare.asUInt
-  val op2 = DontCare.asUInt
-  val imm = DontCare.asUInt
-  val alufn = DontCare.asUInt
+  bits.use_imm := false.B
+  bits.op1 := DontCare
+  bits.op2 := DontCare
+  bits.imm := DontCare
+  bits.alufn := DontCare
 
-  val wb_rd = 0.U
+  bits.wb_rd := 0.U
 }
 
 abstract class Decoder {

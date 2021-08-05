@@ -3,8 +3,7 @@ package rvcore
 import chisel3._
 import chisel3.util._
 import utils._
-import rvcore.isa.DefaultDecodeInfo
-import rvcore.isa.rv64i
+import rvcore.isa._
 
 object DecodeConstant {
   val OpImm = BigInt("0010011", 2)
@@ -48,10 +47,45 @@ class ID(implicit c: CoreConfig) extends Module {
   val instr = io.in.instr
   val pc = io.in.pc
 
-  val decodeInfoList = ListLookup(
-    instr,
-    new DefaultDecodeInfo(pc, instr) { override val has_error = true.B }.toList,
-    rv64i.instrSet.map { case (pat, f) => (pat, f(pc, instr).toList) }
-  )
+  val rs1 = instr(19, 15)
+  val rs2 = instr(24, 20)
+  io.reg_io.raddr(0) := rs1
+  io.reg_io.raddr(1) := rs2
+  val rop1 = WireInit(io.reg_io.rdata(0))
+  val rop2 = WireInit(io.reg_io.rdata(1))
 
+  val decodeInfoList = Lookup(
+    instr,
+    new DefaultDecodeInfo(pc, instr) { bits.has_error := true.B }.bits.asUInt,
+    rv64i.instrSet.map { case (pat, f) => (pat, f(pc, instr).bits.asUInt) }
+  )
+  val decodeInfo = decodeInfoList.asTypeOf(new DecodeInfoBundle)
+
+  when(decodeInfo.has_error) {
+    printf("!!! DECODE ERROR !!!\n");
+  }
+
+  io.out.predicted_pc := pc + 4.U
+
+  io.out.commit.pc := pc
+  io.out.commit.instr := instr
+  io.out.commit.putch := false.B
+
+  io.out.ex.fn := decodeInfo.alufn
+  io.out.ex.op32 := false.B
+  io.out.ex.is_jump := decodeInfo.is_jump
+  io.out.ex.is_branch := decodeInfo.is_branch
+  io.out.ex.is_putch := false.B
+  io.out.ex.use_imm := decodeInfo.use_imm
+  io.out.ex.rs1 := rs1
+  io.out.ex.rs2 := rs2
+  io.out.ex.op1 := rop1
+  io.out.ex.op2 := rop2
+  io.out.ex.imm := decodeInfo.imm
+  
+  io.out.mem := DontCare
+  io.out.mem.en := false.B
+
+  io.out.wb.rd := decodeInfo.wb_rd
+  io.out.wb.data := DontCare
 }
