@@ -18,3 +18,4 @@ add x10, x10, x10
 add x10, x10, x10
 add x10, x10, x10
 add x10, x10, x10
+sub x11, x10, x5
