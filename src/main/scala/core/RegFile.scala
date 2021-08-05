@@ -11,7 +11,7 @@ class RegFile(implicit c: CoreConfig) extends Module {
         Input(Vec(c.RegReadPorts, UInt(c.RegAddrWidth.W)))
       val rdata = Output(Vec(c.RegReadPorts, UInt(c.XLEN.W)))
     }
-    val wb = Flipped(new WriteBackIO)
+    val wb = Input(new WriteBackIO)
     val debug = if (c.DebugPort) Some(new Bundle {
       val reg = Output(Vec(32, UInt(c.XLEN.W)))
     })

@@ -9,10 +9,10 @@ class WB(implicit c: CoreConfig) extends Module {
     val stall = Input(Bool())
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val commit = Flipped(new CommitIO)
-      val wb = Flipped(new WriteBackIO)
+      val commit = Input(new CommitIO)
+      val wb = Input(new WriteBackIO)
     }
-    val reg_wb = new WriteBackIO
+    val reg_wb = Output(new WriteBackIO)
   })
 
   io.reg_wb := io.in.wb

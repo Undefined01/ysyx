@@ -34,7 +34,7 @@ class Alu(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
       val fn = Input(UInt(AluFn.bits.W))
-      val op32 = Input(Bool())
+      val is_op32 = Input(Bool())
       val op1 = Input(UInt(c.XLEN.W))
       val op2 = Input(UInt(c.XLEN.W))
     }
@@ -42,10 +42,10 @@ class Alu(implicit c: CoreConfig) extends Module {
   })
 
   val fn = io.in.fn
-  val op32 = io.in.op32
+  val is_op32 = io.in.is_op32
   val op1 = io.in.op1
   val op2 = io.in.op2
-  val shift_op2 = Mux(op32, Cat(0.U(1.W), op2(4, 0)), op2(5, 0))
+  val shift_op2 = Mux(is_op32, Cat(0.U(1.W), op2(4, 0)), op2(5, 0))
 
   val add = op1 + op2
   val sub = op1 - op2
@@ -57,10 +57,10 @@ class Alu(implicit c: CoreConfig) extends Module {
   val xor = op1 ^ op2
   val srl_64 = op1 >> shift_op2
   val srl_32 = op1(31, 0) >> shift_op2
-  val srl = Mux(op32, SignExt(srl_32, c.XLEN), srl_64)
+  val srl = Mux(is_op32, SignExt(srl_32, c.XLEN), srl_64)
   val sra_64 = (op1.asSInt >> shift_op2).asUInt
   val sra_32 = (op1(31, 0).asSInt >> shift_op2).asUInt
-  val sra = Mux(op32, SignExt(sra_32, c.XLEN), sra_64)
+  val sra = Mux(is_op32, SignExt(sra_32, c.XLEN), sra_64)
   val or = op1 | op2
   val and = op1 & op2
 
@@ -90,7 +90,7 @@ class Alu(implicit c: CoreConfig) extends Module {
       AluFn.SGEU.U -> sgeu
     )
   )
-  io.out := Mux(op32, SignExt(res(31, 0), c.XLEN), res)
+  io.out := Mux(is_op32, SignExt(res(31, 0), c.XLEN), res)
 }
 
 class EX(implicit c: CoreConfig) extends Module {
@@ -98,20 +98,20 @@ class EX(implicit c: CoreConfig) extends Module {
     val in_valid = Input(Bool())
     val in = new Bundle {
       val predicted_pc = Input(UInt(c.XLEN.W))
-      val commit = Flipped(new CommitIO)
-      val ex = Flipped(new ExIO)
-      val mem = Flipped(new MemIO)
-      val wb = Flipped(new WriteBackIO)
+      val commit = Input(new CommitIO)
+      val ex = Input(new ExIO)
+      val mem = Input(new MemIO)
+      val wb = Input(new WriteBackIO)
     }
 
-    val forward = Vec(2, Flipped(new WriteBackIO))
+    val forward = Vec(2, Input(new WriteBackIO))
 
     val out = new Bundle {
       val prediction_failure = Output(Bool())
       val jump_pc = Output(UInt(c.XLEN.W))
-      val commit = new CommitIO
-      val mem = new MemIO
-      val wb = new WriteBackIO
+      val commit = Output(new CommitIO)
+      val mem = Output(new MemIO)
+      val wb = Output(new WriteBackIO)
     }
   })
 
@@ -129,7 +129,7 @@ class EX(implicit c: CoreConfig) extends Module {
 
   val alu = Module(new Alu)
   alu.io.in.fn := io.in.ex.fn
-  alu.io.in.op32 := io.in.ex.op32
+  alu.io.in.is_op32 := io.in.ex.is_op32
   val rop1 = handleForwarding(io.in.ex.rs1, io.in.ex.op1)
   val rop2 = handleForwarding(io.in.ex.rs2, io.in.ex.op2)
   alu.io.in.op1 := rop1

@@ -2,11 +2,12 @@ package rvcore.isa
 
 import chisel3._
 import chisel3.util._
+import rvcore.{CoreConfig, AluFn}
 import utils._
 
-object costom extends InstructionSet {
+object custom extends InstructionSet {
   protected object TrapDecoder extends Decoder {
-    def apply(pc: UInt, instr: UInt): DecodeInfo =
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
       new DefaultDecodeInfo(pc, instr)
   }
 
@@ -18,21 +19,21 @@ object costom extends InstructionSet {
 
 object rv64i_opimm extends InstructionSet {
   protected object OpImmArithDecoder extends Decoder {
-    def apply(pc: UInt, instr: UInt): DecodeInfo =
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
       new DefaultDecodeInfo(pc, instr) {
-        bits.use_imm := true.B
-        bits.imm := I_imm
-        bits.alufn := ZeroExt(funct3, 4)
-        bits.wb_rd := rd
+        bits.ex.use_imm := true.B
+        bits.ex.imm := I_imm
+        bits.ex.fn := ZeroExt(funct3, 4)
+        bits.wb.rd := rd
       }
   }
   protected object OpImmFunctDecoder extends Decoder {
-    def apply(pc: UInt, instr: UInt): DecodeInfo =
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
       new DefaultDecodeInfo(pc, instr) {
-        bits.use_imm := true.B
-        bits.imm := I_imm
-        bits.alufn := Cat(instr(30), funct3)
-        bits.wb_rd := rd
+        bits.ex.use_imm := true.B
+        bits.ex.imm := I_imm
+        bits.ex.fn := Cat(instr(30), funct3)
+        bits.wb.rd := rd
       }
   }
 
@@ -60,10 +61,10 @@ object rv64i_opimm extends InstructionSet {
 
 object rv64i_op extends InstructionSet {
   protected object OpFunctDecoder extends Decoder {
-    def apply(pc: UInt, instr: UInt): DecodeInfo =
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
       new DefaultDecodeInfo(pc, instr) {
-        bits.alufn := Cat(instr(30), funct3)
-        bits.wb_rd := rd
+        bits.ex.fn := Cat(instr(30), funct3)
+        bits.wb.rd := rd
       }
   }
 

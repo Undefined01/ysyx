@@ -5,26 +5,26 @@ import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 
 class ExIO(implicit c: CoreConfig) extends Bundle {
-  val fn = Output(UInt(AluFn.bits.W))
-  val op32 = Output(Bool())
-  val is_jump = Output(Bool())
-  val is_branch = Output(Bool())
-  val is_putch = Output(Bool())
-  val use_imm = Output(Bool())
-  val rs1 = Output(UInt(c.RegAddrWidth.W))
-  val rs2 = Output(UInt(c.RegAddrWidth.W))
-  val op1 = Output(UInt(c.XLEN.W))
-  val op2 = Output(UInt(c.XLEN.W))
-  val imm = Output(UInt(c.XLEN.W))
+  val fn =UInt(AluFn.bits.W)
+  val is_op32 = Bool()
+  val is_jump = Bool()
+  val is_branch = Bool()
+  val is_putch = Bool()
+  val use_imm = Bool()
+  val rs1 = UInt(c.RegAddrWidth.W)
+  val rs2 = UInt(c.RegAddrWidth.W)
+  val op1 = UInt(c.XLEN.W)
+  val op2 = UInt(c.XLEN.W)
+  val imm = UInt(c.XLEN.W)
 }
 
 class MemIO(implicit c: CoreConfig) extends Bundle {
-  val en = Output(Bool())
-  val rw = Output(Bool())
-  val unsigned = Output(Bool())
-  val wWidth = Output(UInt(3.W))
-  val addr = Output(UInt(c.XLEN.W))
-  val wdata = Output(UInt(c.XLEN.W))
+  val en = Bool()
+  val rw = Bool()
+  val unsigned = Bool()
+  val wWidth = UInt(3.W)
+  val addr = UInt(c.XLEN.W)
+  val wdata = UInt(c.XLEN.W)
 
   def set_valid(valid: Bool) = {
     when(!valid) {
@@ -34,8 +34,8 @@ class MemIO(implicit c: CoreConfig) extends Bundle {
 }
 
 class WriteBackIO(implicit c: CoreConfig) extends Bundle {
-  val rd = Output(UInt(c.RegAddrWidth.W))
-  val data = Output(UInt(c.XLEN.W))
+  val rd = UInt(c.RegAddrWidth.W)
+  val data = UInt(c.XLEN.W)
 
   def set_valid(valid: Bool) = {
     when(!valid) {
@@ -45,7 +45,7 @@ class WriteBackIO(implicit c: CoreConfig) extends Bundle {
 }
 
 class CommitIO(implicit c: CoreConfig) extends Bundle {
-  val pc = Output(UInt(c.XLEN.W))
-  val instr = Output(UInt(c.InstrLen.W))
-  val putch = Output(UInt(8.W))
+  val pc = UInt(c.XLEN.W)
+  val instr = UInt(c.InstrLen.W)
+  val putch = UInt(8.W)
 }

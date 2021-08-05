@@ -11,19 +11,19 @@ class ID_EX(implicit c: CoreConfig) extends Module {
     val in_valid = Input(Bool())
     val in = new Bundle {
       val predicted_pc = Input(UInt(c.XLEN.W))
-      val commit = Flipped(new CommitIO)
-      val ex = Flipped(new ExIO)
-      val mem = Flipped(new MemIO)
-      val wb = Flipped(new WriteBackIO)
+      val commit = Input(new CommitIO)
+      val ex = Input(new ExIO)
+      val mem = Input(new MemIO)
+      val wb = Input(new WriteBackIO)
     }
 
     val out_valid = Output(Bool())
     val out = new Bundle {
       val predicted_pc = Output(UInt(c.XLEN.W))
-      val commit = new CommitIO
-      val ex = new ExIO
-      val mem = new MemIO
-      val wb = new WriteBackIO
+      val commit = Output(new CommitIO)
+      val ex = Output(new ExIO)
+      val mem = Output(new MemIO)
+      val wb = Output(new WriteBackIO)
     }
   })
 

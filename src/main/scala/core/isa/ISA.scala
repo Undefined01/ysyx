@@ -2,28 +2,27 @@ package rvcore.isa
 
 import chisel3._
 import chisel3.util._
+import rvcore._
 import utils._
 
-class DecodeInfoBundle extends Bundle {
+class DecodeInfoBundle(implicit c: CoreConfig) extends Bundle {
   val has_error = Bool()
 
-  val is_jump = Bool()
-  val is_branch = Bool()
+  val use_op1 = Bool()
+  val use_op2 = Bool()
 
-  val use_imm = Bool()
-  val op1 = UInt(64.W)
-  val op2 = UInt(64.W)
-  val imm = UInt(64.W)
-  val alufn = UInt(64.W)
-
-  val wb_rd = UInt(64.W)
+  val commit = new CommitIO
+  val ex = new ExIO
+  val mem = new MemIO
+  val wb = new WriteBackIO
 }
 
-class DecodeInfo {
+class DecodeInfo(implicit c: CoreConfig) {
   val bits = Wire(new DecodeInfoBundle)
 }
 
-class DefaultDecodeInfo(pc: UInt, instr: UInt) extends DecodeInfo {
+class DefaultDecodeInfo(pc: UInt, instr: UInt)(implicit c: CoreConfig)
+    extends DecodeInfo {
   protected val opcode = instr(6, 0)
   protected val funct3 = instr(14, 12)
   protected val funct6 = instr(31, 26)
@@ -47,20 +46,29 @@ class DefaultDecodeInfo(pc: UInt, instr: UInt) extends DecodeInfo {
 
   bits.has_error := false.B
 
-  bits.is_jump := false.B
-  bits.is_branch := false.B
+  bits.commit.pc := pc
+  bits.commit.instr := instr
+  bits.commit.putch := 0.U
 
-  bits.use_imm := false.B
-  bits.op1 := DontCare
-  bits.op2 := DontCare
-  bits.imm := DontCare
-  bits.alufn := DontCare
+  bits.ex := DontCare
+  bits.ex.is_op32 := false.B
+  bits.ex.is_jump := false.B
+  bits.ex.is_branch := false.B
+  bits.ex.is_putch := false.B
+  bits.ex.use_imm := false.B
+  bits.ex.rs1 := rs1
+  bits.ex.rs2 := rs2
+  bits.use_op1 := false.B
+  bits.use_op2 := false.B
 
-  bits.wb_rd := 0.U
+  bits.mem := DontCare
+
+  bits.wb.rd := 0.U
+  bits.wb.data := DontCare
 }
 
 abstract class Decoder {
-  def apply(pc: UInt, instr: UInt): DecodeInfo
+  def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo
 }
 
 abstract class InstructionSet {

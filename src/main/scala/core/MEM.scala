@@ -7,7 +7,7 @@ import utils.Logger.Debug
 class MEM(implicit c: CoreConfig) extends Module {
   val io = IO(new Bundle {
     val in = new Bundle {
-      val mem = Flipped(new MemIO)
+      val mem = Input(new MemIO)
     }
     val mem_io = new Bundle {
       val en = Output(Bool())

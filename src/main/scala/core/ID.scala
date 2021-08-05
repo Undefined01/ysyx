@@ -37,22 +37,15 @@ class ID(implicit c: CoreConfig) extends Module {
 
     val out = new Bundle {
       val predicted_pc = Output(UInt(c.XLEN.W))
-      val commit = new CommitIO
-      val ex = new ExIO
-      val mem = new MemIO
-      val wb = new WriteBackIO
+      val commit = Output(new CommitIO)
+      val ex = Output(new ExIO)
+      val mem = Output(new MemIO)
+      val wb = Output(new WriteBackIO)
     }
   })
 
   val instr = io.in.instr
   val pc = io.in.pc
-
-  val rs1 = instr(19, 15)
-  val rs2 = instr(24, 20)
-  io.reg_io.raddr(0) := rs1
-  io.reg_io.raddr(1) := rs2
-  val rop1 = WireInit(io.reg_io.rdata(0))
-  val rop2 = WireInit(io.reg_io.rdata(1))
 
   val decodeInfoList = Lookup(
     instr,
@@ -65,27 +58,21 @@ class ID(implicit c: CoreConfig) extends Module {
     printf("!!! DECODE ERROR !!!\n");
   }
 
+  io.reg_io.raddr(0) := decodeInfo.ex.rs1
+  io.reg_io.raddr(1) := decodeInfo.ex.rs2
+  val rop1 = WireInit(io.reg_io.rdata(0))
+  val rop2 = WireInit(io.reg_io.rdata(1))
+
   io.out.predicted_pc := pc + 4.U
+  io.out.commit := decodeInfo.commit
+  io.out.ex := decodeInfo.ex
+  io.out.mem := decodeInfo.mem
+  io.out.wb := decodeInfo.wb
 
-  io.out.commit.pc := pc
-  io.out.commit.instr := instr
-  io.out.commit.putch := false.B
-
-  io.out.ex.fn := decodeInfo.alufn
-  io.out.ex.op32 := false.B
-  io.out.ex.is_jump := decodeInfo.is_jump
-  io.out.ex.is_branch := decodeInfo.is_branch
-  io.out.ex.is_putch := false.B
-  io.out.ex.use_imm := decodeInfo.use_imm
-  io.out.ex.rs1 := rs1
-  io.out.ex.rs2 := rs2
-  io.out.ex.op1 := rop1
-  io.out.ex.op2 := rop2
-  io.out.ex.imm := decodeInfo.imm
-  
-  io.out.mem := DontCare
-  io.out.mem.en := false.B
-
-  io.out.wb.rd := decodeInfo.wb_rd
-  io.out.wb.data := DontCare
+  when (!decodeInfo.use_op1) {
+    io.out.ex.op1 := rop1
+  }
+  when (!decodeInfo.use_op2) {
+    io.out.ex.op2 := rop2
+  }
 }

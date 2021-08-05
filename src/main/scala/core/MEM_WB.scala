@@ -11,14 +11,14 @@ class MEM_WB(implicit c: CoreConfig) extends Module {
 
     val in_valid = Input(Bool())
     val in = new Bundle {
-      val commit = Flipped(new CommitIO)
-      val wb = Flipped(new WriteBackIO)
+      val commit = Input(new CommitIO)
+      val wb = Input(new WriteBackIO)
     }
 
     val out_valid = Output(Bool())
     val out = new Bundle {
-      val commit = new CommitIO
-      val wb = new WriteBackIO
+      val commit = Output(new CommitIO)
+      val wb = Output(new WriteBackIO)
     }
   })
 
