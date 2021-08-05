@@ -156,11 +156,6 @@ class EX(implicit c: CoreConfig) extends Module {
   io.out.wb.data := alu.io.out
 
   io.out.commit := io.in.commit
-  when(io.in.ex.is_putch) {
-    io.out.commit.putch := rop1(7, 0);
-  }.otherwise {
-    io.out.commit.putch := 0.U;
-  }
 
   io.out.prediction_failure := false.B
   io.out.jump_pc := alu.io.out
