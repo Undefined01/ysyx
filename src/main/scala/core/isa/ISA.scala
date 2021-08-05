@@ -62,6 +62,7 @@ class DefaultDecodeInfo(pc: UInt, instr: UInt)(implicit c: CoreConfig)
   bits.use_op2 := false.B
 
   bits.mem := DontCare
+  bits.mem.en := false.B
 
   bits.wb.rd := 0.U
   bits.wb.data := DontCare
