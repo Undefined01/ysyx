@@ -5,16 +5,18 @@ import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 
 class ExIO(implicit c: CoreConfig) extends Bundle {
-  val fn =UInt(AluFn.bits.W)
   val is_op32 = Bool()
   val is_jump = Bool()
   val is_branch = Bool()
-  val use_imm = Bool()
+  val is_csr = Bool()
+  val fn = UInt(AluFn.bits.W)
   val rs1 = UInt(c.RegAddrWidth.W)
   val rs2 = UInt(c.RegAddrWidth.W)
   val op1 = UInt(c.XLEN.W)
   val op2 = UInt(c.XLEN.W)
+  val use_imm = Bool()
   val imm = UInt(c.XLEN.W)
+  val csrfn = UInt(CsrFn.bits.W)
 }
 
 class MemIO(implicit c: CoreConfig) extends Bundle {
@@ -47,4 +49,5 @@ class CommitIO(implicit c: CoreConfig) extends Bundle {
   val pc = UInt(c.XLEN.W)
   val instr = UInt(c.InstrLen.W)
   val is_putch = Bool()
+  val is_csrskip = Bool()
 }

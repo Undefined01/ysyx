@@ -94,21 +94,24 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
       }
     }
   }
-  "core can execute integer computational instructions" in {
-    runTestCase("addi_with_nop")
-    runTestCase("addi")
-    runTestCase("opimm")
-    runTestCase("op")
-    runTestCase("u_instr")
-  }
-  "core can execute control transfer instructions" in {
-    runTestCase("jump")
-    runTestCase("branch")
-  }
-  "core can execute load and store instructions" in {
-    runTestCase("ldst")
-  }
-  "core can execute 32-bit integer computational instructions" in {
-    runTestCase("op32")
+  // "core can execute integer computational instructions" in {
+  //   runTestCase("addi_with_nop")
+  //   runTestCase("addi")
+  //   runTestCase("opimm")
+  //   runTestCase("op")
+  //   runTestCase("u_instr")
+  // }
+  // "core can execute control transfer instructions" in {
+  //   runTestCase("jump")
+  //   runTestCase("branch")
+  // }
+  // "core can execute load and store instructions" in {
+  //   runTestCase("ldst")
+  // }
+  // "core can execute 32-bit integer computational instructions" in {
+  //   runTestCase("op32")
+  // }
+  "core can read mcycle CSR" in {
+    runTestCase("csr_mcycle")
   }
 }

@@ -70,8 +70,11 @@ class WB(implicit c: CoreConfig) extends Module {
     csr.io.priviledgeMode := 0.U
 
     when(io.in.commit.is_putch) {
-      commit.io.skip := true.B;
-      printf("%c", reg_a0);
+      commit.io.skip := true.B
+      printf("%c", reg_a0)
+    }
+    when(io.in.commit.is_csrskip) {
+      commit.io.skip := true.B
     }
   }
 }

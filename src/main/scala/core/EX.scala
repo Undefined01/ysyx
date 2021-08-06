@@ -176,4 +176,15 @@ class EX(implicit c: CoreConfig) extends Module {
       io.out.prediction_failure := true.B
     }
   }
+
+  val csr = Module(new Csr)
+  val csr_en = io.in_valid && io.in.ex.is_csr
+  csr.io.en := csr_en
+  csr.io.csrfn := io.in.ex.csrfn
+  csr.io.csr_number := io.in.ex.imm
+  csr.io.op := Mux(io.in.ex.use_imm, io.in.ex.rs1, io.in.ex.op1)
+  when(csr_en) {
+    io.out.wb.data := csr.io.res
+  }
+  io.out.commit.is_csrskip := csr.io.skip
 }

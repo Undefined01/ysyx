@@ -2,7 +2,7 @@ package rvcore.isa
 
 import chisel3._
 import chisel3.util._
-import rvcore.{CoreConfig, AluFn}
+import rvcore.{CoreConfig, AluFn, CsrFn}
 import utils._
 
 object custom extends InstructionSet {
@@ -290,6 +290,35 @@ object rv64i_op32 extends InstructionSet {
   )
 }
 
+object rv64i_csr extends InstructionSet {
+  protected object CsrDecoder extends Decoder {
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
+      new DefaultDecodeInfo(pc, instr) {
+        bits.ex.is_csr := true.B
+
+        bits.ex.use_imm := instr(14)
+        bits.ex.imm := I_imm
+        bits.ex.csrfn := funct3(1, 0)
+        bits.wb.rd := rd
+      }
+  }
+
+  val instrSet: List[(BitPat, Decoder)] = List(
+    // CSRRW
+    (BitPat("b????????????_?????_001_?????_1110011"), CsrDecoder),
+    // CSRRS
+    (BitPat("b????????????_?????_010_?????_1110011"), CsrDecoder),
+    // CSRRC
+    (BitPat("b????????????_?????_011_?????_1110011"), CsrDecoder),
+    // CSRRWI
+    (BitPat("b????????????_?????_101_?????_1110011"), CsrDecoder),
+    // CSRRSI
+    (BitPat("b????????????_?????_110_?????_1110011"), CsrDecoder),
+    // CSRRCI
+    (BitPat("b????????????_?????_111_?????_1110011"), CsrDecoder)
+  )
+}
+
 object rv64i extends InstructionSet {
   val instrSet =
     List(
@@ -301,6 +330,7 @@ object rv64i extends InstructionSet {
       rv64i_branch,
       rv64i_op32imm,
       rv64i_op32,
+      rv64i_csr,
       custom
     )
       .map(_.instrSet)
