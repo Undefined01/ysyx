@@ -104,7 +104,7 @@ class EX(implicit c: CoreConfig) extends Module {
       val wb = Input(new WriteBackIO)
     }
 
-    val forward = Vec(2, Input(new WriteBackIO))
+    val forward = Vec(1, Input(new WriteBackIO))
 
     val out = new Bundle {
       val prediction_failure = Output(Bool())
@@ -120,8 +120,6 @@ class EX(implicit c: CoreConfig) extends Module {
     when(reg =/= 0.U) {
       when(reg === io.forward(0).rd) {
         res := io.forward(0).data
-      }.elsewhen(reg === io.forward(1).rd) {
-        res := io.forward(1).data
       }
     }
     res

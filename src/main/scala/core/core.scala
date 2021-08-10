@@ -3,6 +3,7 @@ package rvcore
 import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.BoringUtils
+import device._
 import utils.Logger._
 
 import device.RAM.RamIo
@@ -25,9 +26,7 @@ class RvCore(implicit c: CoreConfig) extends Module {
   val idu = Module(new ID)
   val id_ex = Module(new ID_EX)
   val exu = Module(new EX)
-  val ex_mem = Module(new EX_MEM)
-  val memu = Module(new MEM)
-  val mem_wb = Module(new MEM_WB)
+  val ex_wb = Module(new EX_WB)
   val wbu = Module(new WB)
 
   val ram_mux = Module(new RamMux)
@@ -38,7 +37,7 @@ class RvCore(implicit c: CoreConfig) extends Module {
 
   Debug("-----------------------------------\n")
 
-  stall := ex_mem.io.stall
+  stall := ex_wb.io.stall
   flush := exu.io.out.prediction_failure
 
   pc := c.InitialPC.U
@@ -100,8 +99,7 @@ class RvCore(implicit c: CoreConfig) extends Module {
 
   exu.io.in_valid := id_ex.io.out_valid
   exu.io.in := id_ex.io.out
-  exu.io.forward(0) := ex_mem.io.out.wb
-  exu.io.forward(1) := mem_wb.io.out.wb
+  exu.io.forward(0) := ex_wb.io.out.wb
   Debug(
     id_ex.io.out_valid,
     "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",
@@ -121,38 +119,22 @@ class RvCore(implicit c: CoreConfig) extends Module {
   )
 
   // ex_mem.io.stall := stall
-  ex_mem.io.in_valid := id_ex.io.out_valid
-  ex_mem.io.in := exu.io.out
-  ex_mem.io.out.mem_rdata := memu.io.out.rdata
-
-  memu.io.in.mem := ex_mem.io.out.mem
-  memu.io.mem_io <> ram_mux.io.mem_io
-  Debug(
-    ex_mem.io.out_valid,
-    "MEM in: pc=0x%x mem=%d%d width=%d %x %x\n",
-    ex_mem.io.out.commit.pc,
-    memu.io.in.mem.en,
-    memu.io.in.mem.rw,
-    memu.io.in.mem.wWidth,
-    memu.io.in.mem.addr,
-    memu.io.in.mem.wdata
-  )
-
-  mem_wb.io.stall := stall
-  mem_wb.io.in_valid := ex_mem.io.out_valid
-  mem_wb.io.in.commit := ex_mem.io.out.commit
-  mem_wb.io.in.wb := ex_mem.io.out.wb
+  ex_wb.io.in_valid := id_ex.io.out_valid
+  ex_wb.io.in := exu.io.out
+  AXI4RAM(clock, ex_wb.io.axi)
+  ram_mux.io.mem_io := DontCare
+  ram_mux.io.mem_io.en := false.B
 
   wbu.io.stall := stall
-  wbu.io.in_valid := mem_wb.io.out_valid
-  wbu.io.in := mem_wb.io.out
+  wbu.io.in_valid := ex_wb.io.out_valid
+  wbu.io.in := ex_wb.io.out
   regs.io.wb := wbu.io.reg_wb
   Debug(
-    mem_wb.io.out_valid,
+    ex_wb.io.out_valid,
     "WB in: pc=%x reg%d=%x\n",
-    mem_wb.io.out.commit.pc,
-    mem_wb.io.out.wb.rd,
-    mem_wb.io.out.wb.data
+    ex_wb.io.out.commit.pc,
+    ex_wb.io.out.wb.rd,
+    ex_wb.io.out.wb.data
   )
 
   if (c.DebugPort) {
