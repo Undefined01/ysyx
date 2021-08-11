@@ -2,6 +2,7 @@ package sim
 
 import chisel3._
 import rvcore._
+import device._
 import difftest._
 
 class SimTop extends Module {
@@ -24,9 +25,14 @@ class SimTop extends Module {
     })
   }
   val ram = Module(new RAMHelper)
-  val rvcore = Module(new RvCore()(new RV64ICoreConfig{
-    override val DiffTest = true
-  }))
+  val rvcore = Module(
+    new RvCore()(
+      new RV64ICoreConfig {
+        override val DiffTest = true
+      },
+      AXI4Config64
+    )
+  )
 
   ram.io.clk := clock
   ram.io.en := rvcore.io.ram.en

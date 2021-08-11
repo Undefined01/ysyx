@@ -6,7 +6,7 @@ import device._
 import utils._
 import utils.Logger.Debug
 
-class EX_WB(implicit c: CoreConfig) extends Module {
+class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val io = IO(new Bundle {
     val stall = Output(Bool())
 
@@ -52,16 +52,16 @@ class EX_WB(implicit c: CoreConfig) extends Module {
         io.stall := true.B
         when(io.in.mem.rw) {
           io.axi.aw.valid := true.B
-          io.axi.aw.addr := io.in.mem.addr - "h80000000".U
+          io.axi.aw.bits.addr := io.in.mem.addr - "h80000000".U
           when(io.axi.aw.ready) {
             state := 1.U
           }
         }.otherwise {
           io.axi.ar.valid := true.B
-          io.axi.ar.addr := io.in.mem.addr - "h80000000".U
-          io.axi.ar.len := 0.U
-          io.axi.ar.size := io.in.mem.wWidth
-          io.axi.ar.burst := 0.U
+          io.axi.ar.bits.addr := io.in.mem.addr - "h80000000".U
+          io.axi.ar.bits.len := 0.U
+          io.axi.ar.bits.size := io.in.mem.wWidth
+          io.axi.ar.bits.burst := 0.U
           when(io.axi.ar.ready) {
             state := 3.U
           }
@@ -72,20 +72,17 @@ class EX_WB(implicit c: CoreConfig) extends Module {
     is(1.U) {
       io.stall := true.B
       io.axi.w.valid := true.B
-      io.axi.w.strb := strb << subaddr
-      io.axi.w.data := io.in.mem.wdata << (subaddr * 8.U)
-      io.axi.w.last := true.B
+      io.axi.w.bits.strb := strb << subaddr
+      io.axi.w.bits.data := io.in.mem.wdata << (subaddr * 8.U)
+      io.axi.w.bits.last := true.B
       when(io.axi.w.ready) {
         state := 2.U
-        when(io.axi.b.valid) {
-          io.stall := false.B
-          state := 0.U
-        }
       }
     }
     // Write response
     is(2.U) {
       io.stall := true.B
+      io.axi.b.ready := true.B
       when(io.axi.b.valid) {
         io.stall := false.B
         state := 0.U
@@ -94,7 +91,8 @@ class EX_WB(implicit c: CoreConfig) extends Module {
     // Read data
     is(3.U) {
       io.stall := true.B
-      val axidata = (io.axi.r.data >> (subaddr * 8.U)) & mask
+      io.axi.r.ready := true.B
+      val axidata = (io.axi.r.bits.data >> (subaddr * 8.U)) & mask
       val data = Mux(
         io.in.mem.unsigned,
         axidata,

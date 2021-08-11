@@ -11,8 +11,12 @@ import java.io._
 import device._
 
 class CoreTest extends FreeSpec with ChiselScalatestTester {
-  class ScalaTestTop(c: CoreConfig, memoryFile: String)
-      extends Module {
+  class ScalaTestTop(memoryFile: String) extends Module {
+    val c = new RV64ICoreConfig {
+      override val InitialPC = BigInt("0")
+      override val DebugPort = true
+    }
+
     class DiffTestIO extends Bundle {
       val reg = Output(Vec(32, UInt(c.XLEN.W)))
       val if_pc = Output(UInt(c.XLEN.W))
@@ -29,12 +33,12 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
         memoryFile = memoryFile
       )
     )
-    val core = Module(new RvCore()(c))
+    val core = Module(new RvCore()(c, AXI4Config64))
     core.io.ram <> ram.io
 
     io := DontCare
     io.reg := core.io.debug.get.reg
-    
+
     // BoringUtils.addSink(io.reg, "RegFile_regs")
     BoringUtils.addSink(io.if_pc, "IF_pc")
     BoringUtils.addSink(io.if_instr, "IF_instr")
@@ -48,13 +52,7 @@ class CoreTest extends FreeSpec with ChiselScalatestTester {
       8
     )
     test(
-      new ScalaTestTop(
-        new RV64ICoreConfig {
-          override val InitialPC = BigInt("0")
-          override val DebugPort = true
-        },
-        memoryFile = s"test_run_dir/temp/${testcaseName}.hex"
-      )
+      new ScalaTestTop(memoryFile = s"test_run_dir/temp/${testcaseName}.hex")
     ) { c =>
       println(s"Start running testcase `${testcaseName}`")
       var i = 0

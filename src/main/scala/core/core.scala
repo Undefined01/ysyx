@@ -8,7 +8,7 @@ import utils.Logger._
 
 import device.RAM.RamIo
 
-class RvCore(implicit c: CoreConfig) extends Module {
+class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val io = IO(new Bundle {
     val ram = new RamIo(c.XLEN, c.XLEN / 8)
     val debug =
