@@ -1,25 +1,26 @@
 .include "common.h"
 
 li x1, 1
-lw x2, %lo(a)(x0)
+lw x2, a
 mv x3, x2
 mv x4, x2
 mv x5, x2
-lb x6, %lo(a)(x0)
-lbu x7, %lo(a)(x0)
-lb x8, %lo(b)(x0)
-lbu x9, %lo(b)(x0)
-li x10, %lo(a)
+lb x6, a
+lbu x7, a
+lb x8, b
+lbu x9, b
+la x10, a
 lh x11, 0x6(x10)
 lh x10, 0x4(x10)
-ld x12, %lo(a)(x0)
-ld x13, %lo(c)(x0)
+ld x12, a
+ld x13, c
 addi x12, x12, 8
-sd x12, %lo(c)(x0)
-lw x14, %lo(c)(x0)
-sb x2, %lo(b)(x0)
-sh x13, %lo(a)(x0)
-ld x15, %lo(a)(x0)
+sd x12, c, x31
+lw x14, c
+sb x2, b, x31
+sh x13, a, x31
+ld x15, a
+mv x31, x0
 
 
 .data

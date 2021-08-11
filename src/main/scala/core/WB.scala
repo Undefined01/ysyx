@@ -19,6 +19,9 @@ class WB(implicit c: CoreConfig) extends Module {
   io.reg_wb.set_valid(io.in_valid)
 
   if (c.DiffTest) {
+    val cycle = RegInit(0.U(32.W))
+    cycle := cycle + 1.U
+
     val reg_a0 = WireInit(0.U(64.W))
     BoringUtils.addSink(reg_a0, "RegFile_a0")
 
@@ -44,8 +47,8 @@ class WB(implicit c: CoreConfig) extends Module {
     trap.io.valid := io.in.commit.instr === BigInt("0000006b", 16).U
     trap.io.code := reg_a0
     trap.io.pc := io.in.commit.pc
-    trap.io.cycleCnt := 0.U
-    trap.io.instrCnt := 0.U
+    trap.io.cycleCnt := cycle
+    trap.io.instrCnt := cycle
 
     val csr = Module(new difftest.DifftestCSRState)
     csr.io.clock := clock

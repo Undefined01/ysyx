@@ -44,28 +44,25 @@ class EX_WB(implicit c: CoreConfig) extends Module {
       (y < (1 << x)).B.asUInt
     })
   })(io.in.mem.wWidth)
-  val mask = Cat(strb.asBools.map { x => Fill(8, x) })
+  val mask = Cat(strb.asBools.reverse.map { x => Fill(8, x) })
   switch(state) {
     // Idle
     is(0.U) {
       when(io.in.mem.en) {
         io.stall := true.B
         when(io.in.mem.rw) {
-          printf("Start writing mem %x\n", io.in.mem.addr)
           io.axi.aw.valid := true.B
-          io.axi.aw.addr := io.in.mem.addr
+          io.axi.aw.addr := io.in.mem.addr - "h80000000".U
           when(io.axi.aw.ready) {
             state := 1.U
           }
         }.otherwise {
-          printf("Start reading mem %x\n", io.in.mem.addr)
           io.axi.ar.valid := true.B
-          io.axi.ar.addr := io.in.mem.addr
+          io.axi.ar.addr := io.in.mem.addr - "h80000000".U
           io.axi.ar.len := 0.U
           io.axi.ar.size := io.in.mem.wWidth
           io.axi.ar.burst := 0.U
           when(io.axi.ar.ready) {
-            printf("Reading data %x\n", io.axi.r.data)
             state := 3.U
           }
         }
@@ -73,7 +70,6 @@ class EX_WB(implicit c: CoreConfig) extends Module {
     }
     // Write data
     is(1.U) {
-      printf("Writing data %x\n", io.in.mem.wdata)
       io.stall := true.B
       io.axi.w.valid := true.B
       io.axi.w.strb := strb << subaddr
@@ -82,7 +78,6 @@ class EX_WB(implicit c: CoreConfig) extends Module {
       when(io.axi.w.ready) {
         state := 2.U
         when(io.axi.b.valid) {
-          printf("Response received\n")
           io.stall := false.B
           state := 0.U
         }
@@ -92,31 +87,26 @@ class EX_WB(implicit c: CoreConfig) extends Module {
     is(2.U) {
       io.stall := true.B
       when(io.axi.b.valid) {
-        printf("Response received\n")
         io.stall := false.B
         state := 0.U
       }
     }
     // Read data
     is(3.U) {
-      printf("Reading data %x\n", io.axi.r.data)
       io.stall := true.B
-      val rdata = (io.axi.r.data >> (subaddr * 8.U)) & mask
-      val wbdata = Mux(
+      val axidata = (io.axi.r.data >> (subaddr * 8.U)) & mask
+      val data = Mux(
         io.in.mem.unsigned,
-        rdata,
+        axidata,
         VecInit((0 to log2Ceil(dataBytes)).map { x =>
-          SignExt(rdata((1 << x) * 8 - 1, 0), dataBytes * 8)
+          SignExt(axidata((1 << x) * 8 - 1, 0), dataBytes * 8)
         })(io.in.mem.wWidth)
       )
       when(io.axi.r.valid) {
         state := 0.U
         io.stall := false.B
-        wb.data := wbdata
+        wb.data := data
       }
     }
-  }
-  when(io.in.mem.en) {
-    printf("MEM enabled, state=%d, stall=%d\n", state, io.stall);
   }
 }

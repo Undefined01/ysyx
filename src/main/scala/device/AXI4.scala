@@ -116,7 +116,7 @@ object AXI4RAM {
     io.r.data := mod.io.io_in_rdata
     io.r.last := mod.io.io_in_rlast
 
-    printf("AXI4RAM ar %x %x %x %x %x\n", mod.io.io_in_arvalid, mod.io.io_in_araddr, mod.io.io_in_arlen, mod.io.io_in_arsize, mod.io.io_in_arburst)
-    printf("AXI4RAM r %x %x %x\n", mod.io.io_in_rvalid, mod.io.io_in_rdata, mod.io.io_in_rlast)
+    // printf("AXI4RAM ar %x%x %x %x %x %x\n", mod.io.io_in_arready, mod.io.io_in_arvalid, mod.io.io_in_araddr, mod.io.io_in_arlen, mod.io.io_in_arsize, mod.io.io_in_arburst)
+    // printf("AXI4RAM r %x %x %x\n", mod.io.io_in_rvalid, mod.io.io_in_rdata, mod.io.io_in_rlast)
   }
 }
