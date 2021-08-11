@@ -9,16 +9,8 @@ import utils.Logger._
 import device.RAM.RamIo
 
 class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
-  val io = IO(new Bundle {
-    val ram = new RamIo(c.XLEN, c.XLEN / 8)
-    val debug =
-      if (c.DebugPort) Some(new Bundle {
-        val reg = Output(Vec(32, UInt(c.XLEN.W)))
-      })
-      else None
-  })
-
-  val pc = Wire(UInt(c.XLEN.W))
+  Debug("-----------------------------------\n")
+  val io = IO(new Bundle {})
 
   val regs = Module(new RegFile)
 
@@ -29,23 +21,22 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val ex_wb = Module(new EX_WB)
   val wbu = Module(new WB)
 
-  val ram_mux = Module(new RamMux)
-  ram_mux.io.ram_io <> io.ram
-
   val stall = Wire(Bool())
   val flush = Wire(Bool())
-
-  Debug("-----------------------------------\n")
 
   stall := ex_wb.io.stall
   flush := exu.io.out.prediction_failure
 
-  pc := c.InitialPC.U
+  val next_pc = Wire(Valid(UInt(c.XLEN.W)))
+  next_pc.valid := false.B
+  next_pc.bits := DontCare
   when(ifu.io.out.valid) {
-    pc := idu.io.out.predicted_pc
+    next_pc.valid := true.B
+    next_pc.bits := idu.io.out.predicted_pc
   }
   when(exu.io.out.prediction_failure) {
-    pc := exu.io.out.jump_pc
+    next_pc.valid := true.B
+    next_pc.bits := exu.io.out.jump_pc
   }
 
   Debug(stall, "!!!STALL!!!\n")
@@ -53,18 +44,8 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
 
   ifu.io.stall := stall
   ifu.io.flush := flush
-  ifu.io.in.pc := pc
-  ifu.io.if_io <> ram_mux.io.if_io
-  if (c.DebugPort) {
-    BoringUtils.addSource(ifu.io.out.pc, "IF_pc")
-    BoringUtils.addSource(ifu.io.out.instr, "IF_instr")
-  }
-  // Debug(
-  //   ifu.io.if_io.en,
-  //   "IF: fetch pc=0x%x 0x%x\n",
-  //   ifu.io.if_io.addr,
-  //   ifu.io.if_io.data.foldLeft(0.U(1.W))(Cat(_, _))
-  // )
+  ifu.io.in.next_pc := next_pc
+  AXI4RAM(clock, reset, ifu.io.axi)
 
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
@@ -118,12 +99,9 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     exu.io.out.wb.data
   )
 
-  // ex_mem.io.stall := stall
   ex_wb.io.in_valid := id_ex.io.out_valid
   ex_wb.io.in := exu.io.out
-  AXI4RAM(clock, ex_wb.io.axi)
-  ram_mux.io.mem_io := DontCare
-  ram_mux.io.mem_io.en := false.B
+  AXI4RAM(clock, reset, ex_wb.io.axi)
 
   wbu.io.stall := stall
   wbu.io.in_valid := ex_wb.io.out_valid
@@ -136,8 +114,4 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     ex_wb.io.out.wb.rd,
     ex_wb.io.out.wb.data
   )
-
-  if (c.DebugPort) {
-    io.debug.get.reg := regs.io.debug.get.reg
-  }
 }

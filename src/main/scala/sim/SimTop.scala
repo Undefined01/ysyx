@@ -12,19 +12,6 @@ class SimTop extends Module {
     val uart = new UARTIO
   })
 
-  class RAMHelper extends BlackBox {
-    val io = IO(new Bundle {
-      val clk = Input(Clock())
-      val en = Input(Bool())
-      val rIdx = Input(UInt(64.W))
-      val rdata = Output(UInt(64.W))
-      val wIdx = Input(UInt(64.W))
-      val wdata = Input(UInt(64.W))
-      val wmask = Input(UInt(64.W))
-      val wen = Input(Bool())
-    })
-  }
-  val ram = Module(new RAMHelper)
   val rvcore = Module(
     new RvCore()(
       new RV64ICoreConfig {
@@ -34,14 +21,27 @@ class SimTop extends Module {
     )
   )
 
-  ram.io.clk := clock
-  ram.io.en := rvcore.io.ram.en
-  ram.io.rIdx := rvcore.io.ram.raddr - (BigInt("80000000", 16) >> 3).U
-  ram.io.wIdx := rvcore.io.ram.waddr - (BigInt("80000000", 16) >> 3).U
-  ram.io.wdata := rvcore.io.ram.wdata
-  ram.io.wmask := rvcore.io.ram.wmask
-  ram.io.wen := rvcore.io.ram.wen
-  rvcore.io.ram.rdata := ram.io.rdata
+  // class RAMHelper extends BlackBox {
+  //   val io = IO(new Bundle {
+  //     val clk = Input(Clock())
+  //     val en = Input(Bool())
+  //     val rIdx = Input(UInt(64.W))
+  //     val rdata = Output(UInt(64.W))
+  //     val wIdx = Input(UInt(64.W))
+  //     val wdata = Input(UInt(64.W))
+  //     val wmask = Input(UInt(64.W))
+  //     val wen = Input(Bool())
+  //   })
+  // }
+  // val ram = Module(new RAMHelper)
+  // ram.io.clk := clock
+  // ram.io.en := rvcore.io.ram.en
+  // ram.io.rIdx := rvcore.io.ram.raddr - (BigInt("80000000", 16) >> 3).U
+  // ram.io.wIdx := rvcore.io.ram.waddr - (BigInt("80000000", 16) >> 3).U
+  // ram.io.wdata := rvcore.io.ram.wdata
+  // ram.io.wmask := rvcore.io.ram.wmask
+  // ram.io.wen := rvcore.io.ram.wen
+  // rvcore.io.ram.rdata := ram.io.rdata
 
   io.uart.in.valid := false.B
   io.uart.out.valid := false.B

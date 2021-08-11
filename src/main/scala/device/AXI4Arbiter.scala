@@ -32,3 +32,63 @@ import chisel3.util._
 //   }
 
 // }
+
+class AXI4Arbiter(implicit c: AXI4Config) extends Module {
+  val io = IO(new Bundle {
+    val masterPort = Vec(2, Flipped(new AXI4Bundle))
+    val slavePort = Vec(1, new AXI4Bundle)
+  })
+
+  io.masterPort.foreach(_.flippedDefault())
+  io.slavePort.foreach(_.default())
+
+  val out = Wire(new AXI4Bundle)
+  out.default()
+
+  val rValidReg = RegInit(false.B)
+  val rCurReg = RegInit(0.U(2.W))
+
+  when(!rValidReg) {
+    when(io.masterPort(0).ar.valid) {
+      out.ar <> io.masterPort(0).ar
+      rValidReg := true.B
+      rCurReg := 0.U
+    }
+    when(io.masterPort(1).ar.valid) {
+      out.ar <> io.masterPort(1).ar
+      rValidReg := true.B
+      rCurReg := 1.U
+    }
+  }.otherwise {
+    out.ar <> io.masterPort(rCurReg).ar
+    out.r <> io.masterPort(rCurReg).r
+    when(out.r.valid && out.r.bits.last) {
+      rValidReg := false.B
+    }
+  }
+
+  val wValidReg = RegInit(false.B)
+  val wCurReg = RegInit(0.U(2.W))
+
+  when(!wValidReg) {
+    when(io.masterPort(0).aw.valid) {
+      out.aw <> io.masterPort(0).aw
+      wValidReg := true.B
+      wCurReg := 0.U
+    }
+    when(io.masterPort(1).aw.valid) {
+      out.aw <> io.masterPort(1).aw
+      wValidReg := true.B
+      wCurReg := 1.U
+    }
+  }.otherwise {
+    out.aw <> io.masterPort(wCurReg).aw
+    out.w <> io.masterPort(wCurReg).w
+    out.b <> io.masterPort(wCurReg).b
+    when(out.b.valid) {
+      wValidReg := false.B
+    }
+  }
+
+  io.slavePort(0) <> out
+}

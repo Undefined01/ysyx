@@ -2,22 +2,20 @@ package rvcore
 
 import chisel3._
 import chisel3.util._
+import utils.Logger._
+import device._
 
-class IF(implicit c: CoreConfig) extends Module {
+class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val io = IO(new Bundle {
     val stall = Input(Bool())
     val flush = Input(Bool())
 
     val in = new Bundle {
-      val pc = Input(UInt(c.XLEN.W))
+      val next_pc = Input(Valid(UInt(c.XLEN.W)))
     }
 
     // IO to fetch instruction from memory
-    val if_io = new Bundle {
-      val valid = Input(Bool())
-      val raddr = Output(UInt(c.XLEN.W))
-      val rdata = Input(UInt(c.XLEN.W))
-    }
+    val axi = new AXI4Bundle
 
     val out = new Bundle {
       val valid = Output(Bool())
@@ -26,13 +24,46 @@ class IF(implicit c: CoreConfig) extends Module {
     }
   })
 
-  val is_stall = RegNext(io.stall, false.B)
-  val instr = io.if_io.rdata(c.InstrLen - 1, 0)
-  val last_instr = RegEnable(instr, !is_stall)
+  val cache = Reg(UInt(c.XLEN.W))
+  val cacheIdx = Reg(UInt((c.XLEN - 3).W))
 
-  io.if_io.raddr := Mux(!io.stall, io.in.pc, io.out.pc)
+  val next_pc = Mux(
+    io.in.next_pc.valid,
+    io.in.next_pc.bits,
+    RegEnable(io.in.next_pc.bits, c.InitialPC.U, io.in.next_pc.valid)
+  )
+  val pcIdx = next_pc(c.XLEN - 1, 3)
+  val cacheMiss = cacheIdx =/= pcIdx
 
-  io.out.valid := !io.flush && RegEnable(io.if_io.valid, false.B, !io.stall)
-  io.out.pc := RegEnable(io.in.pc, !io.stall)
-  io.out.instr := Mux(is_stall, last_instr, instr)
+  val state = RegInit(0.U(2.W))
+
+  io.axi.default()
+  switch(state) {
+    is(0.U) {
+      when(cacheMiss) {
+        Debug("Cache missed for %x\n", next_pc)
+        io.axi.ar.valid := true.B
+        io.axi.ar.bits.addr := next_pc - "h80000000".U
+        io.axi.ar.bits.len := 0.U
+        io.axi.ar.bits.size := 3.U
+        io.axi.ar.bits.burst := 1.U
+        when(io.axi.ar.ready) {
+          state := 1.U
+        }
+      }
+    }
+    is(1.U) {
+      io.axi.r.ready := true.B
+      when(io.axi.r.valid) {
+        state := 0.U
+        cacheIdx := pcIdx
+        cache := io.axi.r.bits.data
+        Debug("Cache loaded for %x\n", next_pc)
+      }
+    }
+  }
+
+  io.out.valid := !io.flush && !RegEnable(cacheMiss, enable = !io.stall)
+  io.out.pc := RegEnable(next_pc, enable = !io.stall)
+  io.out.instr := Mux(io.out.pc(2), cache(63, 32), cache(31, 0))
 }

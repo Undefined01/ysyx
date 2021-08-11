@@ -55,10 +55,17 @@ class AXI4Bundle(implicit c: AXI4Config) extends Bundle {
     w.valid := false.B
     w.bits := DontCare
     b.ready := false.B
-    b.bits := DontCare
     ar.valid := false.B
     ar.bits := DontCare
     r.ready := false.B
+  }
+  def flippedDefault() = {
+    aw.ready := false.B
+    w.ready := false.B
+    b.valid := false.B
+    b.bits := DontCare
+    ar.ready := false.B
+    r.valid := false.B
     r.bits := DontCare
   }
 }
@@ -66,7 +73,7 @@ class AXI4Bundle(implicit c: AXI4Config) extends Bundle {
 class AXI4RAM extends BlackBox {
   val io = IO(new Bundle {
     val clock = Input(Clock())
-    val reset = Input(Bool())
+    val reset = Input(Reset())
     val io_in_awready = Output(Bool())
     val io_in_awvalid = Input(Bool())
     val io_in_awaddr = Input(UInt(32.W))
@@ -91,10 +98,10 @@ class AXI4RAM extends BlackBox {
 }
 
 object AXI4RAM {
-  def apply(clock: Clock, io: AXI4Bundle) = {
+  def apply(clock: Clock, reset: Reset, io: AXI4Bundle) = {
     val mod = Module(new AXI4RAM)
     mod.io.clock := clock
-    mod.io.reset := false.B
+    mod.io.reset := reset
 
     io.aw.ready := mod.io.io_in_awready
     mod.io.io_in_awvalid := io.aw.valid
@@ -115,7 +122,7 @@ object AXI4RAM {
     mod.io.io_in_arlen := io.ar.bits.len
     mod.io.io_in_arsize := io.ar.bits.size
     mod.io.io_in_arburst := io.ar.bits.burst
-    
+
     mod.io.io_in_rready := io.r.ready
     io.r.valid := mod.io.io_in_rvalid
     io.r.bits.data := mod.io.io_in_rdata
