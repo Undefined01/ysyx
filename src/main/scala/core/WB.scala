@@ -44,7 +44,7 @@ class WB(implicit c: CoreConfig) extends Module {
     val trap = Module(new difftest.DifftestTrapEvent)
     trap.io.clock := clock
     trap.io.coreid := c.CoreId.U
-    trap.io.valid := io.in.commit.instr === BigInt("0000006b", 16).U
+    trap.io.valid := io.in_valid && io.in.commit.instr === "h0000006b".U
     trap.io.code := reg_a0
     trap.io.pc := io.in.commit.pc
     trap.io.cycleCnt := cycle

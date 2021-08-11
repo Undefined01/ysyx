@@ -36,7 +36,7 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val cacheMiss = cacheIdx =/= pcIdx
 
   val state = RegInit(0.U(2.W))
-
+  val pcFetchIdx = Reg(UInt((c.XLEN - 3).W))
   io.axi.default()
   switch(state) {
     is(0.U) {
@@ -47,6 +47,7 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         io.axi.ar.bits.len := 0.U
         io.axi.ar.bits.size := 3.U
         io.axi.ar.bits.burst := 1.U
+        pcFetchIdx := pcIdx
         when(io.axi.ar.ready) {
           state := 1.U
         }
@@ -56,9 +57,9 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
       io.axi.r.ready := true.B
       when(io.axi.r.valid) {
         state := 0.U
-        cacheIdx := pcIdx
+        cacheIdx := pcFetchIdx
         cache := io.axi.r.bits.data
-        Debug("Cache loaded for %x\n", next_pc)
+        Debug("Cache loaded for %x\n", Cat(pcFetchIdx, 0.U(3.W)))
       }
     }
   }
