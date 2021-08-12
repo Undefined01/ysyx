@@ -43,7 +43,7 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
       when(cacheMiss) {
         Debug("Cache missed for %x\n", next_pc)
         io.axi.ar.valid := true.B
-        io.axi.ar.bits.addr := next_pc - "h80000000".U
+        io.axi.ar.bits.addr := next_pc
         io.axi.ar.bits.len := 0.U
         io.axi.ar.bits.size := 3.U
         io.axi.ar.bits.burst := 1.U

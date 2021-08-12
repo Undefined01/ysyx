@@ -52,13 +52,13 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         io.stall := true.B
         when(io.in.mem.rw) {
           io.axi.aw.valid := true.B
-          io.axi.aw.bits.addr := io.in.mem.addr - "h80000000".U
+          io.axi.aw.bits.addr := io.in.mem.addr
           when(io.axi.aw.ready) {
             state := 1.U
           }
         }.otherwise {
           io.axi.ar.valid := true.B
-          io.axi.ar.bits.addr := io.in.mem.addr - "h80000000".U
+          io.axi.ar.bits.addr := io.in.mem.addr
           io.axi.ar.bits.len := 0.U
           io.axi.ar.bits.size := io.in.mem.wWidth
           io.axi.ar.bits.burst := 0.U
