@@ -20,6 +20,9 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val exu = Module(new EX)
   val ex_wb = Module(new EX_WB)
   val wbu = Module(new WB)
+  
+  val axi_arbiter = Module(new AXI4Arbiter)
+  AXI4RAM(clock, reset, axi_arbiter.io.slavePort(0))
 
   val stall = Wire(Bool())
   val flush = Wire(Bool())
@@ -45,7 +48,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   ifu.io.stall := stall
   ifu.io.flush := flush
   ifu.io.in.next_pc := next_pc
-  AXI4RAM(clock, reset, ifu.io.axi)
+  axi_arbiter.io.masterPort(1) <> ifu.io.axi
 
   idu.io.in.pc := ifu.io.out.pc
   idu.io.in.instr := ifu.io.out.instr
@@ -101,7 +104,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
 
   ex_wb.io.in_valid := id_ex.io.out_valid
   ex_wb.io.in := exu.io.out
-  AXI4RAM(clock, reset, ex_wb.io.axi)
+  axi_arbiter.io.masterPort(0) <> ex_wb.io.axi
 
   wbu.io.stall := stall
   wbu.io.in_valid := ex_wb.io.out_valid

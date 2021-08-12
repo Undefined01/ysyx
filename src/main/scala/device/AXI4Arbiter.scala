@@ -2,6 +2,7 @@ package device
 
 import chisel3._
 import chisel3.util._
+import utils.Logger._
 
 // class AXI4Arbiter(
 //     masterCnt: Int,
@@ -53,8 +54,7 @@ class AXI4Arbiter(implicit c: AXI4Config) extends Module {
       out.ar <> io.masterPort(0).ar
       rValidReg := true.B
       rCurReg := 0.U
-    }
-    when(io.masterPort(1).ar.valid) {
+    }.elsewhen(io.masterPort(1).ar.valid) {
       out.ar <> io.masterPort(1).ar
       rValidReg := true.B
       rCurReg := 1.U
@@ -75,8 +75,7 @@ class AXI4Arbiter(implicit c: AXI4Config) extends Module {
       out.aw <> io.masterPort(0).aw
       wValidReg := true.B
       wCurReg := 0.U
-    }
-    when(io.masterPort(1).aw.valid) {
+    }.elsewhen(io.masterPort(1).aw.valid) {
       out.aw <> io.masterPort(1).aw
       wValidReg := true.B
       wCurReg := 1.U
