@@ -319,6 +319,22 @@ object rv64i_csr extends InstructionSet {
   )
 }
 
+object trap extends InstructionSet {
+  protected  object TrapDecoder extends Decoder {
+    def apply(pc: UInt, instr: UInt)(implicit c: CoreConfig): DecodeInfo =
+      new DefaultDecodeInfo(pc, instr) {
+        bits.ex.is_trap := true.B
+      }
+  }
+
+  val instrSet: List[(BitPat, Decoder)] = List(
+    // ECALL
+    (BitPat("b0000000_00000_00000_000_00000_1110011"), TrapDecoder),
+    // MRET
+    (BitPat("b0011000_00010_00000_000_00000_1110011"), TrapDecoder),
+  )
+}
+
 object rv64i extends InstructionSet {
   val instrSet =
     List(
@@ -331,7 +347,8 @@ object rv64i extends InstructionSet {
       rv64i_op32imm,
       rv64i_op32,
       rv64i_csr,
-      custom
+      custom,
+      trap
     )
       .map(_.instrSet)
       .flatten

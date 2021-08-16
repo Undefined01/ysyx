@@ -56,6 +56,7 @@ class DefaultDecodeInfo(pc: UInt, instr: UInt)(implicit c: CoreConfig)
   bits.ex.is_jump := false.B
   bits.ex.is_branch := false.B
   bits.ex.is_csr := false.B
+  bits.ex.is_trap := false.B
   bits.ex.use_imm := false.B
   bits.ex.rs1 := rs1
   bits.ex.rs2 := rs2

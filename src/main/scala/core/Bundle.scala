@@ -9,6 +9,7 @@ class ExIO(implicit c: CoreConfig) extends Bundle {
   val is_jump = Bool()
   val is_branch = Bool()
   val is_csr = Bool()
+  val is_trap = Bool()
   val fn = UInt(AluFn.bits.W)
   val rs1 = UInt(c.RegAddrWidth.W)
   val rs2 = UInt(c.RegAddrWidth.W)

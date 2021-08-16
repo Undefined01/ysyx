@@ -107,8 +107,10 @@ class EX(implicit c: CoreConfig) extends Module {
     val forward = Vec(1, Input(new WriteBackIO))
 
     val out = new Bundle {
-      val prediction_failure = Output(Bool())
-      val jump_pc = Output(UInt(c.XLEN.W))
+      val jump = Output(new Bundle {
+        val valid = Bool()
+        val pc = UInt(c.XLEN.W)
+      })
       val commit = Output(new CommitIO)
       val mem = Output(new MemIO)
       val wb = Output(new WriteBackIO)
@@ -145,23 +147,20 @@ class EX(implicit c: CoreConfig) extends Module {
 
   io.out.commit := io.in.commit
 
-  io.out.prediction_failure := false.B
-  io.out.jump_pc := alu.io.out
+  io.out.jump.valid := false.B
+  io.out.jump.pc := DontCare
   when(io.in_valid && io.in.ex.is_jump) {
+    io.out.jump.pc := alu.io.out
+    io.out.jump.valid := io.in.predicted_pc =/= io.out.jump.pc
     io.out.wb.data := io.in.ex.imm
-    when(io.in.predicted_pc =/= io.out.jump_pc) {
-      io.out.prediction_failure := true.B
-    }
   }
   when(io.in_valid && io.in.ex.is_branch) {
-    io.out.jump_pc := Mux(
+    io.out.jump.pc := Mux(
       alu.io.out(0).asBool,
       io.in.ex.imm,
       io.in.commit.pc + 4.U
     )
-    when(io.in.predicted_pc =/= io.out.jump_pc) {
-      io.out.prediction_failure := true.B
-    }
+    io.out.jump.valid := io.in.predicted_pc =/= io.out.jump.pc
   }
 
   val csr = Module(new Csr)
@@ -169,9 +168,28 @@ class EX(implicit c: CoreConfig) extends Module {
   csr.io.en := csr_en
   csr.io.csrfn := io.in.ex.csrfn
   csr.io.csr_number := io.in.ex.imm
-  csr.io.op := Mux(io.in.ex.use_imm, io.in.ex.rs1, io.in.ex.op1)
+  csr.io.op := Mux(io.in.ex.use_imm, io.in.ex.rs1, rop1)
   when(csr_en) {
     io.out.wb.data := csr.io.res
   }
   io.out.commit.is_csrskip := csr.io.skip
+
+  val trap_en = io.in_valid && io.in.ex.is_trap
+  csr.io.trap.is_ecall := false.B
+  csr.io.trap.is_mret := false.B
+  csr.io.trap.pc := io.in.commit.pc
+  when(trap_en) {
+    switch(io.in.ex.rs2) {
+      is(0.U) {
+        csr.io.trap.is_ecall := true.B
+        io.out.jump.valid := true.B
+        io.out.jump.pc := csr.io.trap.jump_pc
+      }
+      is("b00010".U){
+        csr.io.trap.is_mret := true.B
+        io.out.jump.valid := true.B
+        io.out.jump.pc := csr.io.trap.jump_pc
+      }
+    }
+  }
 }

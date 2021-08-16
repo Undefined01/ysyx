@@ -13,6 +13,15 @@ object CsrFn {
 }
 
 object CsrNumber {
+  val mstatus = 0x300
+  val mtvec = 0x305
+
+  val mscratch = 0x340
+  val mepc = 0x341
+  val mcause = 0x342
+  val mtval = 0x343
+  val mip = 0x344
+
   val mcycle = 0xb00
 }
 
@@ -30,10 +39,32 @@ object Csr {
     val number: Int
     val skip: Boolean
   }
+  def apply(csrNumber: Int) = new CsrModule {
+    val number = csrNumber
+    val skip = false
+
+    when(io.wen) {
+      reg := io.wdata
+    }
+  }
   class Mcycle extends CsrModule {
     val number = CsrNumber.mcycle
     val skip = true
     reg := reg + 1.U
+  }
+  class MstatusBundle extends Bundle {
+    val dontcare = UInt(51.W)
+    val mpp = UInt(2.W)
+    val wpri_10_9 = UInt(2.W)
+    val spp = Bool()
+    val mpie = Bool()
+    val wpri_6 = Bool()
+    val spie = Bool()
+    val upie = Bool()
+    val mie = Bool()
+    val wpri_2 = Bool()
+    val sie = Bool()
+    val uie = Bool()
   }
 }
 
@@ -45,6 +76,13 @@ class Csr(implicit c: CoreConfig) extends Module {
     val op = Input(UInt(c.XLEN.W))
     val res = Output(UInt(c.XLEN.W))
     val skip = Output(Bool())
+
+    val trap = new Bundle {
+      val is_ecall = Input(Bool())
+      val is_mret = Input(Bool())
+      val pc = Input(UInt(c.XLEN.W))
+      val jump_pc = Output(UInt(c.XLEN.W))
+    }
   })
 
   val csr_value = Wire(UInt(64.W))
@@ -58,9 +96,17 @@ class Csr(implicit c: CoreConfig) extends Module {
     )
   )
 
+  val mstatus = Module(Csr(CsrNumber.mstatus))
+  val mtvec = Module(Csr(CsrNumber.mtvec))
+  val mscratch = Module(Csr(CsrNumber.mscratch))
+  val mepc = Module(Csr(CsrNumber.mepc))
+  val mcause = Module(Csr(CsrNumber.mcause))
+
   val mcycle = Module(new Csr.Mcycle)
 
-  val csrs: List[Csr.CsrModule] = List(mcycle)
+  val csrs: List[Csr.CsrModule] =
+    List(mstatus, mtvec, mscratch, mepc, mcause, mcycle)
+
   csr_value := MuxLookup(
     io.csr_number,
     0.U(64.W),
@@ -77,4 +123,54 @@ class Csr(implicit c: CoreConfig) extends Module {
     0.U(64.W),
     csrs.map { x => x.number.U -> x.skip.B }
   )
+
+  io.trap.jump_pc := DontCare
+  when(io.trap.is_ecall) {
+    mepc.io.wen := true.B
+    mepc.io.wdata := io.trap.pc
+    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
+    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
+    mstatusNew.mpie := mstatusOld.mie
+    mstatusNew.mie := false.B
+    mstatusNew.mpp := 3.U
+    mstatus.io.wen := true.B
+    mstatus.io.wdata := mstatusNew.asUInt
+    mcause.io.wen := true.B
+    mcause.io.wdata := 11.U
+    io.trap.jump_pc := mtvec.io.value
+  }
+  when(io.trap.is_mret) {
+    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
+    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
+    mstatusNew.mie := mstatusOld.mpie
+    mstatusNew.mpie := true.B
+    mstatusNew.mpp := 0.U
+    mstatus.io.wen := true.B
+    mstatus.io.wdata := mstatusNew.asUInt
+    io.trap.jump_pc := mepc.io.value
+  }
+
+  if (c.DiffTest) {
+    val csr = Module(new difftest.DifftestCSRState)
+    csr.io.clock := clock
+    csr.io.coreid := c.CoreId.U
+    csr.io.mstatus := mstatus.io.value
+    csr.io.mcause := mcause.io.value
+    csr.io.mepc := mepc.io.value
+    csr.io.sstatus := 0.U
+    csr.io.scause := 0.U
+    csr.io.sepc := 0.U
+    csr.io.satp := 0.U
+    csr.io.mip := 0.U
+    csr.io.mie := 0.U
+    csr.io.mscratch := 0.U
+    csr.io.sscratch := 0.U
+    csr.io.mideleg := 0.U
+    csr.io.medeleg := 0.U
+    csr.io.mtval := 0.U
+    csr.io.stval := 0.U
+    csr.io.mtvec := mtvec.io.value
+    csr.io.stvec := 0.U
+    csr.io.priviledgeMode := 3.U
+  }
 }

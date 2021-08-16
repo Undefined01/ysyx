@@ -28,7 +28,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val flush = Wire(Bool())
 
   stall := ex_wb.io.stall
-  flush := exu.io.out.prediction_failure
+  flush := exu.io.out.jump.valid
 
   val next_pc = Wire(Valid(UInt(c.XLEN.W)))
   next_pc.valid := false.B
@@ -37,9 +37,9 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     next_pc.valid := true.B
     next_pc.bits := idu.io.out.predicted_pc
   }
-  when(exu.io.out.prediction_failure) {
+  when(exu.io.out.jump.valid) {
     next_pc.valid := true.B
-    next_pc.bits := exu.io.out.jump_pc
+    next_pc.bits := exu.io.out.jump.pc
   }
 
   Debug(stall, "!!!STALL!!!\n")
