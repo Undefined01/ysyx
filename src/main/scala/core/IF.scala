@@ -59,7 +59,7 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         state := 0.U
         cacheIdx := pcFetchIdx
         cache := io.axi.r.bits.data
-        Debug("Cache loaded for %x\n", Cat(pcFetchIdx, 0.U(3.W)))
+        Debug("Cache loaded for %x: %x\n", Cat(pcFetchIdx, 0.U(3.W)), io.axi.r.bits.data)
       }
     }
   }

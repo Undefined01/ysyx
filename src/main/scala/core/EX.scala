@@ -172,7 +172,7 @@ class EX(implicit c: CoreConfig) extends Module {
   when(csr_en) {
     io.out.wb.data := csr.io.res
   }
-  io.out.commit.is_csrskip := csr.io.skip
+  io.out.commit.is_csrskip := csr_en && csr.io.skip
 
   val trap_en = io.in_valid && io.in.ex.is_trap
   csr.io.trap.is_ecall := false.B

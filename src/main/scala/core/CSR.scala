@@ -13,7 +13,10 @@ object CsrFn {
 }
 
 object CsrNumber {
+  val sstatus = 0x100
+
   val mstatus = 0x300
+  val mie = 0x304
   val mtvec = 0x305
 
   val mscratch = 0x340
@@ -26,6 +29,11 @@ object CsrNumber {
 }
 
 object Csr {
+  class Status {
+    val fs = RegInit(0.U(2.W))
+    val xs = RegInit(0.U(2.W))
+    val sd = fs.orR || xs.orR
+  }
   abstract class CsrModule extends Module {
     val io = IO(new Bundle {
       val value = Output(UInt(64.W))
@@ -33,15 +41,16 @@ object Csr {
       val wdata = Input(UInt(64.W))
     })
 
-    val reg = RegInit(0.U(64.W))
-    io.value := reg
-
     val number: Int
-    val skip: Boolean
+    val skip: Boolean = false
+
+    val reg = RegInit(0.U(64.W))
+    val wpri_mask: BigInt = BigInt("ffffffffffffffff", 16)
+    val wpri = reg & wpri_mask.U
+    io.value := wpri
   }
   def apply(csrNumber: Int) = new CsrModule {
     val number = csrNumber
-    val skip = false
 
     when(io.wen) {
       reg := io.wdata
@@ -49,11 +58,14 @@ object Csr {
   }
   class Mcycle extends CsrModule {
     val number = CsrNumber.mcycle
-    val skip = true
+    override val skip = true
     reg := reg + 1.U
   }
-  class MstatusBundle extends Bundle {
-    val dontcare = UInt(51.W)
+  class StatusBundle extends Bundle {
+    val sd = Bool()
+    val dontcare = UInt(46.W)
+    val xs = UInt(2.W)
+    val fs = UInt(2.W)
     val mpp = UInt(2.W)
     val wpri_10_9 = UInt(2.W)
     val spp = Bool()
@@ -65,6 +77,16 @@ object Csr {
     val wpri_2 = Bool()
     val sie = Bool()
     val uie = Bool()
+  }
+  class MStatus extends CsrModule {
+    val number = CsrNumber.mstatus
+
+    val out = WireInit(wpri.asTypeOf(new StatusBundle))
+    out.sd := out.fs.orR || out.xs.orR
+    io.value := out.asUInt
+    when(io.wen) {
+      reg := io.wdata
+    }
   }
 }
 
@@ -96,7 +118,8 @@ class Csr(implicit c: CoreConfig) extends Module {
     )
   )
 
-  val mstatus = Module(Csr(CsrNumber.mstatus))
+  val mstatus = Module(new Csr.MStatus)
+  val mie = Module(Csr(CsrNumber.mie))
   val mtvec = Module(Csr(CsrNumber.mtvec))
   val mscratch = Module(Csr(CsrNumber.mscratch))
   val mepc = Module(Csr(CsrNumber.mepc))
@@ -105,7 +128,7 @@ class Csr(implicit c: CoreConfig) extends Module {
   val mcycle = Module(new Csr.Mcycle)
 
   val csrs: List[Csr.CsrModule] =
-    List(mstatus, mtvec, mscratch, mepc, mcause, mcycle)
+    List(mstatus, mie, mtvec, mscratch, mepc, mcause, mcycle)
 
   csr_value := MuxLookup(
     io.csr_number,
@@ -128,8 +151,8 @@ class Csr(implicit c: CoreConfig) extends Module {
   when(io.trap.is_ecall) {
     mepc.io.wen := true.B
     mepc.io.wdata := io.trap.pc
-    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
-    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
+    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
+    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
     mstatusNew.mpie := mstatusOld.mie
     mstatusNew.mie := false.B
     mstatusNew.mpp := 3.U
@@ -140,8 +163,8 @@ class Csr(implicit c: CoreConfig) extends Module {
     io.trap.jump_pc := mtvec.io.value
   }
   when(io.trap.is_mret) {
-    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
-    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.MstatusBundle))
+    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
+    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
     mstatusNew.mie := mstatusOld.mpie
     mstatusNew.mpie := true.B
     mstatusNew.mpp := 0.U
@@ -157,13 +180,13 @@ class Csr(implicit c: CoreConfig) extends Module {
     csr.io.mstatus := mstatus.io.value
     csr.io.mcause := mcause.io.value
     csr.io.mepc := mepc.io.value
-    csr.io.sstatus := 0.U
+    csr.io.sstatus := mstatus.io.value & "h80000003000DE122".U
     csr.io.scause := 0.U
     csr.io.sepc := 0.U
     csr.io.satp := 0.U
     csr.io.mip := 0.U
-    csr.io.mie := 0.U
-    csr.io.mscratch := 0.U
+    csr.io.mie := mie.io.value
+    csr.io.mscratch := mscratch.io.value
     csr.io.sscratch := 0.U
     csr.io.mideleg := 0.U
     csr.io.medeleg := 0.U

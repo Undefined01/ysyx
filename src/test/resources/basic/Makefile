@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-RV_TOOLCHIAN ?= riscv64-unknown-elf-
+RV_TOOLCHIAN ?= riscv64-linux-gnu-
 RV_AS ?= ${RV_TOOLCHIAN}as
 RV_LD ?= ${RV_TOOLCHIAN}ld
 RV_OBJCOPY ?= ${RV_TOOLCHIAN}objcopy
