@@ -22,7 +22,7 @@ class WB(implicit c: CoreConfig) extends Module {
     val cycleCnt = RegInit(0.U(32.W))
     cycleCnt := cycleCnt + 1.U
     val instrCnt = RegInit(0.U(32.W))
-    when(io.in_valid) {
+    when(io.in_valid && !io.stall) {
       instrCnt := instrCnt + 1.U
     }
 
