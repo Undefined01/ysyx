@@ -50,6 +50,10 @@ class DefaultDecodeInfo(pc: UInt, instr: UInt)(implicit c: CoreConfig)
   bits.commit.instr := instr
   bits.commit.is_putch := false.B
   bits.commit.skip := false.B
+  bits.commit.event.intrNO := 0.U
+  bits.commit.event.cause := 0.U
+  bits.commit.event.exceptionPC := DontCare
+  bits.commit.event.exceptionInst := DontCare
 
   bits.ex := DontCare
   bits.ex.is_op32 := false.B

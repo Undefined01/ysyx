@@ -16,7 +16,7 @@ class Clint(implicit axi_config: AXI4Config) extends Module {
   val io = IO(new Bundle {
     val axi = Flipped(new AXI4Bundle)
     val out = new Bundle {
-      val intr = Output(Bool())
+      val timer_intr = Output(Bool())
     }
   })
 
@@ -89,5 +89,5 @@ class Clint(implicit axi_config: AXI4Config) extends Module {
     }
   }
 
-  io.out.intr := mtime >= mtimecmp
+  io.out.timer_intr := mtime >= mtimecmp
 }

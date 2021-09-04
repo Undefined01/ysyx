@@ -85,7 +85,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   exu.io.in_valid := id_ex.io.out_valid
   exu.io.in := id_ex.io.out
   exu.io.forward(0) := ex_wb.io.out.wb
-  // exu.io.intr := clint.io.out.intr
+  exu.io.timer_intr := clint.io.out.timer_intr
   Debug(
     id_ex.io.out_valid,
     "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",
@@ -104,7 +104,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     exu.io.out.wb.data
   )
 
-  ex_wb.io.in_valid := id_ex.io.out_valid
+  ex_wb.io.in_valid := exu.io.out_valid
   ex_wb.io.in := exu.io.out
   axi_arbiter.io.masterPort(0) <> ex_wb.io.axi
   ex_wb.io.is_mmio := axi_arbiter.io.is_mmio

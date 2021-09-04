@@ -88,6 +88,21 @@ object Csr {
       reg := io.wdata
     }
   }
+  class IEBundle extends Bundle {
+    val wpri_12 = UInt(52.W)
+    val meie = Bool()
+    val wpri_10 = Bool()
+    val seie = Bool()
+    val ueie = Bool()
+    val mtie = Bool()
+    val wpri_6 = Bool()
+    val stie = Bool()
+    val utie = Bool()
+    val msie = Bool()
+    val wpri_2 = Bool()
+    val ssie = Bool()
+    val usie = Bool()
+  }
 }
 
 class Csr(implicit c: CoreConfig) extends Module {
@@ -102,8 +117,12 @@ class Csr(implicit c: CoreConfig) extends Module {
     val trap = new Bundle {
       val is_ecall = Input(Bool())
       val is_mret = Input(Bool())
+      val is_timerintr = Input(Bool())
       val pc = Input(UInt(c.XLEN.W))
-      val jump_pc = Output(UInt(c.XLEN.W))
+      val jump = Output(new Bundle {
+        val valid = Bool()
+        val pc = UInt(c.XLEN.W)
+      })
     }
   })
 
@@ -119,7 +138,9 @@ class Csr(implicit c: CoreConfig) extends Module {
   )
 
   val mstatus = Module(new Csr.MStatus)
+  val mstatusB = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
   val mie = Module(Csr(CsrNumber.mie))
+  val mieB = WireInit(mie.io.value.asTypeOf(new Csr.IEBundle))
   val mtvec = Module(Csr(CsrNumber.mtvec))
   val mscratch = Module(Csr(CsrNumber.mscratch))
   val mepc = Module(Csr(CsrNumber.mepc))
@@ -147,30 +168,45 @@ class Csr(implicit c: CoreConfig) extends Module {
     csrs.map { x => x.number.U -> x.skip.B }
   )
 
-  io.trap.jump_pc := DontCare
+  io.trap.jump.valid := false.B
+  io.trap.jump.pc := DontCare
+  val intr = Wire(new Bundle {
+    val valid = Bool()
+    val cause = UInt(64.W)
+  })
+  intr.valid := false.B
+  intr.cause := DontCare
+  when(io.trap.is_timerintr && mstatusB.mie && mieB.mtie) {
+    intr.valid := true.B
+    intr.cause := "h80000000_00000007".U
+  }
   when(io.trap.is_ecall) {
+    intr.valid := true.B
+    intr.cause := 11.U
+  }
+  when(intr.valid) {
     mepc.io.wen := true.B
     mepc.io.wdata := io.trap.pc
-    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
-    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
-    mstatusNew.mpie := mstatusOld.mie
+    val mstatusNew = WireInit(mstatusB)
+    mstatusNew.mpie := mstatusB.mie
     mstatusNew.mie := false.B
     mstatusNew.mpp := 3.U
     mstatus.io.wen := true.B
     mstatus.io.wdata := mstatusNew.asUInt
     mcause.io.wen := true.B
-    mcause.io.wdata := 11.U
-    io.trap.jump_pc := mtvec.io.value
+    mcause.io.wdata := intr.cause
+    io.trap.jump.valid := true.B
+    io.trap.jump.pc := mtvec.io.value
   }
   when(io.trap.is_mret) {
-    val mstatusOld = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
-    val mstatusNew = WireInit(mstatus.io.value.asTypeOf(new Csr.StatusBundle))
-    mstatusNew.mie := mstatusOld.mpie
+    val mstatusNew = WireInit(mstatusB)
+    mstatusNew.mie := mstatusB.mpie
     mstatusNew.mpie := true.B
     mstatusNew.mpp := 0.U
     mstatus.io.wen := true.B
     mstatus.io.wdata := mstatusNew.asUInt
-    io.trap.jump_pc := mepc.io.value
+    io.trap.jump.valid := true.B
+    io.trap.jump.pc := mepc.io.value
   }
 
   if (c.DiffTest) {

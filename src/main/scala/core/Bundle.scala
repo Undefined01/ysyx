@@ -51,4 +51,10 @@ class CommitIO(implicit c: CoreConfig) extends Bundle {
   val instr = UInt(c.InstrLen.W)
   val is_putch = Bool()
   val skip = Bool()
+  val event = new Bundle {
+    val intrNO = UInt(32.W)
+    val cause = UInt(32.W)
+    val exceptionPC = UInt(64.W)
+    val exceptionInst = UInt(32.W)
+  }
 }

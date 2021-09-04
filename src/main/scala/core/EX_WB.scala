@@ -53,7 +53,7 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   switch(state) {
     // Idle
     is(0.U) {
-      when(io.in.mem.en) {
+      when(io.in_valid && io.in.mem.en) {
         io.stall := true.B
         when(io.in.mem.rw) {
           io.axi.aw.valid := true.B

@@ -33,7 +33,6 @@ class WB(implicit c: CoreConfig) extends Module {
     commit.io.clock := clock
     commit.io.coreid := c.CoreId.U
     commit.io.index := 0.U
-
     commit.io.valid := io.in_valid && !io.stall
     commit.io.pc := io.in.commit.pc
     commit.io.instr := io.in.commit.instr
@@ -53,6 +52,14 @@ class WB(implicit c: CoreConfig) extends Module {
     trap.io.pc := io.in.commit.pc
     trap.io.cycleCnt := cycleCnt
     trap.io.instrCnt := instrCnt
+
+    val event = Module(new difftest.DifftestArchEvent)
+    event.io.clock := clock
+    event.io.coreid := c.CoreId.U
+    event.io.intrNO := io.in.commit.event.intrNO
+    event.io.cause := io.in.commit.event.cause
+    event.io.exceptionPC := io.in.commit.event.exceptionPC
+    event.io.exceptionInst := io.in.commit.event.exceptionInst
 
     when(io.in_valid && io.in.commit.is_putch) {
       commit.io.skip := true.B
