@@ -70,7 +70,7 @@ class AXI4Bundle(implicit c: AXI4Config) extends Bundle {
   }
 }
 
-class AXI4RAM extends BlackBox {
+class AXI4RAM extends BlackBox with HasBlackBoxResource {
   val io = IO(new Bundle {
     val clock = Input(Clock())
     val reset = Input(Reset())
@@ -95,6 +95,7 @@ class AXI4RAM extends BlackBox {
     val io_in_rdata = Output(UInt(64.W))
     val io_in_rlast = Output(Bool())
   })
+  addResource("/vsrc/AXI4RAM.v")
 }
 
 object AXI4RAM {

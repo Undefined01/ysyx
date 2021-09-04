@@ -36,7 +36,6 @@ import scala.reflect.ClassTag
 
 // }
 
-
 class TransInfoBundle extends Bundle {
   var src = Input(UInt(2.W))
   var dst = Input(UInt(2.W))
@@ -45,11 +44,12 @@ class TransInfoBundle extends Bundle {
 class AXI4Arbiter(implicit c: AXI4Config) extends Module {
   val io = IO(new Bundle {
     val masterPort = Vec(2, Flipped(new AXI4Bundle))
-    val slavePort = Vec(1, new AXI4Bundle)
+    val slavePort = Vec(2, new AXI4Bundle)
   })
 
   val addrSpace = Seq(
-    (BigInt("80000000", 16), BigInt("90000000", 16))
+    (BigInt("80000000", 16), BigInt("9fffffff", 16)),
+    (BigInt("20000000", 16), BigInt("2000ffff", 16))
   )
   val addrSpaceStart = VecInit(addrSpace.map(_._1.U(c.AddrWidth.W)))
 
@@ -69,9 +69,12 @@ class AXI4Arbiter(implicit c: AXI4Config) extends Module {
       rTrans.bits.src := 1.U
     }
     rTrans.bits.dst := VecInit(
-      addrSpace.map { x =>
-        x._1.U <= out.ar.bits.addr && out.ar.bits.addr < x._2.U
-      }.zipWithIndex.map { case (x, idx) => Mux(x, idx.U, 0.U) }
+      addrSpace
+        .map { x =>
+          x._1.U <= out.ar.bits.addr && out.ar.bits.addr <= x._2.U
+        }
+        .zipWithIndex
+        .map { case (x, idx) => Mux(x, idx.U, 0.U) }
     ).reduceTree(_ | _)
   }.otherwise {
     out.ar <> io.masterPort(rTrans.bits.src).ar
@@ -85,45 +88,36 @@ class AXI4Arbiter(implicit c: AXI4Config) extends Module {
     out.ar.bits.addr - addrSpaceStart(rTrans.bits.dst)
   io.slavePort(rTrans.bits.dst).r <> out.r
 
-  val wValidReg = RegInit(false.B)
-  val wSourceReg = RegInit(0.U(2.W))
-  val wTargetReg = RegInit(0.U(2.W))
-  val wLast = out.b.valid
-
-  when(!wValidReg) {
+  var wTrans = RegInit(0.U.asTypeOf(Valid(new TransInfoBundle)))
+  when(!wTrans.valid) {
     when(io.masterPort(0).aw.valid) {
-      out.aw <> io.masterPort(0).aw
-      wValidReg := true.B
-      wSourceReg := 0.U
+      wTrans.valid := true.B
+      wTrans.bits.src := 0.U
     }.elsewhen(io.masterPort(1).aw.valid) {
-      out.aw <> io.masterPort(1).aw
-      wValidReg := true.B
-      wSourceReg := 1.U
+      wTrans.valid := true.B
+      wTrans.bits.src := 1.U
     }
-  }.otherwise {
-    out.aw <> io.masterPort(wSourceReg).aw
-    out.w <> io.masterPort(wSourceReg).w
-    out.b <> io.masterPort(wSourceReg).b
-    when(wLast) {
-      wValidReg := false.B
-    }
-  }
-
-  when(!wValidReg || wLast) {
-    val inAddrSpace = addrSpace.map { x =>
-      x._1.U <= out.aw.bits.addr && out.aw.bits.addr < x._2.U
-    }
-    wTargetReg := VecInit(
-      inAddrSpace.zipWithIndex
+    wTrans.bits.dst := VecInit(
+      addrSpace
+        .map { x =>
+          x._1.U <= out.aw.bits.addr && out.aw.bits.addr <= x._2.U
+        }
+        .zipWithIndex
         .map { case (x, idx) => Mux(x, idx.U, 0.U) }
     ).reduceTree(_ | _)
+  }.otherwise {
+    out.aw <> io.masterPort(wTrans.bits.src).aw
+    out.w <> io.masterPort(wTrans.bits.src).w
+    out.b <> io.masterPort(wTrans.bits.src).b
+    when(out.b.valid && out.b.ready) {
+      wTrans.valid := false.B
+    }
   }
-
-  io.slavePort(wTargetReg).aw <> out.aw
-  io.slavePort(wTargetReg).aw.bits.addr :=
-    out.aw.bits.addr - addrSpaceStart(wTargetReg)
-  io.slavePort(wTargetReg).w <> out.w
-  io.slavePort(wTargetReg).b <> out.b
+  io.slavePort(wTrans.bits.dst).aw <> out.aw
+  io.slavePort(wTrans.bits.dst).aw.bits.addr :=
+    out.aw.bits.addr - addrSpaceStart(wTrans.bits.dst)
+  io.slavePort(wTrans.bits.dst).w <> out.w
+  io.slavePort(wTrans.bits.dst).b <> out.b
 }
 
 object SignalHolder {
