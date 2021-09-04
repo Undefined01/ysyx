@@ -50,5 +50,5 @@ class CommitIO(implicit c: CoreConfig) extends Bundle {
   val pc = UInt(c.XLEN.W)
   val instr = UInt(c.InstrLen.W)
   val is_putch = Bool()
-  val is_csrskip = Bool()
+  val skip = Bool()
 }

@@ -58,7 +58,7 @@ class WB(implicit c: CoreConfig) extends Module {
       commit.io.skip := true.B
       printf("%c", reg_a0)
     }
-    when(io.in.commit.is_csrskip) {
+    when(io.in.commit.skip) {
       commit.io.skip := true.B
     }
   }

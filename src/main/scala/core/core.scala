@@ -6,8 +6,6 @@ import chisel3.util.experimental.BoringUtils
 import device._
 import utils.Logger._
 
-import device.RAM.RamIo
-
 class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   Debug("-----------------------------------\n")
   val io = IO(new Bundle {})
@@ -20,9 +18,12 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val exu = Module(new EX)
   val ex_wb = Module(new EX_WB)
   val wbu = Module(new WB)
+
+  val clint = Module(new Clint)
   
   val axi_arbiter = Module(new AXI4Arbiter)
   AXI4RAM(clock, reset, axi_arbiter.io.slavePort(0))
+  axi_arbiter.io.slavePort(1) <> clint.io.axi
 
   val stall = Wire(Bool())
   val flush = Wire(Bool())
@@ -84,6 +85,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   exu.io.in_valid := id_ex.io.out_valid
   exu.io.in := id_ex.io.out
   exu.io.forward(0) := ex_wb.io.out.wb
+  // exu.io.intr := clint.io.out.intr
   Debug(
     id_ex.io.out_valid,
     "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",
@@ -105,6 +107,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   ex_wb.io.in_valid := id_ex.io.out_valid
   ex_wb.io.in := exu.io.out
   axi_arbiter.io.masterPort(0) <> ex_wb.io.axi
+  ex_wb.io.is_mmio := axi_arbiter.io.is_mmio
 
   wbu.io.stall := stall
   wbu.io.in_valid := ex_wb.io.out_valid

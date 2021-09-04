@@ -18,6 +18,7 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     }
 
     val axi = new AXI4Bundle
+    val is_mmio = Input(Bool())
 
     val out_valid = Output(Bool())
     val out = new Bundle {
@@ -29,7 +30,11 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val state = RegInit(0.U(2.W))
 
   io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
-  io.out.commit := RegEnable(io.in.commit, !io.stall)
+  val out_commit = RegEnable(io.in.commit, !io.stall)
+  when(io.is_mmio) {
+    out_commit.skip := true.B
+  }
+  io.out.commit := out_commit
   val wb = RegEnable(io.in.wb, !io.stall)
   io.out.wb := wb
   io.out.wb.set_valid(io.out_valid)
@@ -55,6 +60,13 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
           io.axi.aw.bits.addr := io.in.mem.addr
           when(io.axi.aw.ready) {
             state := 1.U
+          }
+          io.axi.w.valid := true.B
+          io.axi.w.bits.strb := strb << subaddr
+          io.axi.w.bits.data := io.in.mem.wdata << (subaddr * 8.U)
+          io.axi.w.bits.last := true.B
+          when(io.axi.w.ready) {
+            state := 2.U
           }
         }.otherwise {
           io.axi.ar.valid := true.B
