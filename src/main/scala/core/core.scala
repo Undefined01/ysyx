@@ -20,7 +20,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val wbu = Module(new WB)
 
   val clint = Module(new Clint)
-  
+
   val axi_arbiter = Module(new AXI4Arbiter)
   AXI4RAM(clock, reset, axi_arbiter.io.slavePort(0))
   axi_arbiter.io.slavePort(1) <> clint.io.axi
@@ -34,13 +34,15 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val next_pc = Wire(Valid(UInt(c.XLEN.W)))
   next_pc.valid := false.B
   next_pc.bits := DontCare
-  when(ifu.io.out.valid) {
-    next_pc.valid := true.B
-    next_pc.bits := idu.io.out.predicted_pc
-  }
-  when(exu.io.out.jump.valid) {
-    next_pc.valid := true.B
-    next_pc.bits := exu.io.out.jump.pc
+  when(!stall) {
+    when(ifu.io.out.valid) {
+      next_pc.valid := true.B
+      next_pc.bits := idu.io.out.predicted_pc
+    }
+    when(exu.io.out.jump.valid) {
+      next_pc.valid := true.B
+      next_pc.bits := exu.io.out.jump.pc
+    }
   }
 
   Debug(stall, "!!!STALL!!!\n")
