@@ -17,6 +17,7 @@ class EX(implicit c: CoreConfig) extends Module {
 
     val forward = Vec(1, Input(new WriteBackIO))
     val timer_intr = Input(Bool())
+    val stall = Input(Bool())
 
     val out_valid = Output(Bool())
     val out = new Bundle {
@@ -78,7 +79,7 @@ class EX(implicit c: CoreConfig) extends Module {
   }
 
   val csr = Module(new Csr)
-  val csr_en = io.in_valid && io.in.ex.is_csr
+  val csr_en = io.in_valid && !io.stall && io.in.ex.is_csr
   csr.io.en := csr_en
   csr.io.csrfn := io.in.ex.csrfn
   csr.io.csr_number := io.in.ex.imm
@@ -88,10 +89,11 @@ class EX(implicit c: CoreConfig) extends Module {
   }
   io.out.commit.skip := csr_en && csr.io.skip
 
-  csr.io.trap.is_timerintr := io.timer_intr
-  when(io.timer_intr && csr.io.trap.jump.valid) {
+  val can_interrupted = io.in_valid && !io.stall
+  csr.io.trap.is_timerintr := io.timer_intr && can_interrupted
+  when(csr.io.trap.intr =/= 0.U) {
     io.out_valid := false.B
-    io.out.commit.event.intrNO := 7.U
+    io.out.commit.event.intrNO := csr.io.trap.intr
     io.out.commit.event.exceptionPC := io.in.commit.pc
     io.out.jump := csr.io.trap.jump
   }

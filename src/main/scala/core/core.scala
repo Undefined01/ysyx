@@ -88,6 +88,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   exu.io.in := id_ex.io.out
   exu.io.forward(0) := ex_wb.io.out.wb
   exu.io.timer_intr := clint.io.out.timer_intr
+  exu.io.stall := stall
   Debug(
     id_ex.io.out_valid,
     "EX in: pc=0x%x fn=%d rs1=%d rs2=%d\n",

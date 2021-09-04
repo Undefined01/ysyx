@@ -119,6 +119,8 @@ class Csr(implicit c: CoreConfig) extends Module {
       val is_mret = Input(Bool())
       val is_timerintr = Input(Bool())
       val pc = Input(UInt(c.XLEN.W))
+
+      val intr = Output(UInt(32.W))
       val jump = Output(new Bundle {
         val valid = Bool()
         val pc = UInt(c.XLEN.W)
@@ -168,6 +170,7 @@ class Csr(implicit c: CoreConfig) extends Module {
     csrs.map { x => x.number.U -> x.skip.B }
   )
 
+  io.trap.intr := 0.U
   io.trap.jump.valid := false.B
   io.trap.jump.pc := DontCare
   val intr = Wire(new Bundle {
@@ -179,8 +182,8 @@ class Csr(implicit c: CoreConfig) extends Module {
   when(io.trap.is_timerintr && mstatusB.mie && mieB.mtie) {
     intr.valid := true.B
     intr.cause := "h80000000_00000007".U
-  }
-  when(io.trap.is_ecall) {
+    io.trap.intr := 7.U
+  }.elsewhen(io.trap.is_ecall) {
     intr.valid := true.B
     intr.cause := 11.U
   }
