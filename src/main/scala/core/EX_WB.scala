@@ -27,9 +27,10 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     }
   })
 
-  val state = RegInit(0.U(2.W))
+  val state = RegInit(0.U(3.W))
+  io.stall := state =/= 0.U
 
-  io.out_valid := RegEnable(io.in_valid, false.B, !io.stall)
+  io.out_valid := RegEnable(io.in_valid, false.B, !io.stall) && !io.stall
   val out_commit = RegEnable(io.in.commit, !io.stall)
   when(io.is_mmio) {
     out_commit.skip := true.B
@@ -39,53 +40,30 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   io.out.wb := wb
   io.out.wb.set_valid(io.out_valid)
 
-  io.stall := false.B
+  val mem = Reg(new MemIO)
 
   io.axi.default()
   val dataBytes = c.XLEN / 8
-  val subaddr = io.in.mem.addr(log2Ceil(dataBytes) - 1, 0)
+  val subaddr = mem.addr(log2Ceil(dataBytes) - 1, 0)
   val strb = VecInit((0 to log2Ceil(dataBytes)).map { x =>
     Cat((0 until dataBytes).reverse.map { y =>
       (y < (1 << x)).B.asUInt
     })
-  })(io.in.mem.wWidth)
+  })(mem.wWidth)
   val mask = Cat(strb.asBools.reverse.map { x => Fill(8, x) })
   switch(state) {
     // Idle
     is(0.U) {
+      mem := io.in.mem
       when(io.in_valid && io.in.mem.en) {
-        io.stall := true.B
-        when(io.in.mem.rw) {
-          io.axi.aw.valid := true.B
-          io.axi.aw.bits.addr := io.in.mem.addr
-          when(io.axi.aw.ready) {
-            state := 1.U
-          }
-          io.axi.w.valid := true.B
-          io.axi.w.bits.strb := strb << subaddr
-          io.axi.w.bits.data := io.in.mem.wdata << (subaddr * 8.U)
-          io.axi.w.bits.last := true.B
-          when(io.axi.w.ready) {
-            state := 2.U
-          }
-        }.otherwise {
-          io.axi.ar.valid := true.B
-          io.axi.ar.bits.addr := io.in.mem.addr
-          io.axi.ar.bits.len := 0.U
-          io.axi.ar.bits.size := io.in.mem.wWidth
-          io.axi.ar.bits.burst := 0.U
-          when(io.axi.ar.ready) {
-            state := 3.U
-          }
-        }
+        state := 4.U
       }
     }
     // Write data
     is(1.U) {
-      io.stall := true.B
       io.axi.w.valid := true.B
       io.axi.w.bits.strb := strb << subaddr
-      io.axi.w.bits.data := io.in.mem.wdata << (subaddr * 8.U)
+      io.axi.w.bits.data := mem.wdata << (subaddr * 8.U)
       io.axi.w.bits.last := true.B
       when(io.axi.w.ready) {
         state := 2.U
@@ -93,29 +71,51 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     }
     // Write response
     is(2.U) {
-      io.stall := true.B
       io.axi.b.ready := true.B
       when(io.axi.b.valid) {
-        io.stall := false.B
         state := 0.U
       }
     }
     // Read data
     is(3.U) {
-      io.stall := true.B
       io.axi.r.ready := true.B
       val axidata = (io.axi.r.bits.data >> (subaddr * 8.U)) & mask
       val data = Mux(
-        io.in.mem.unsigned,
+        mem.unsigned,
         axidata,
         VecInit((0 to log2Ceil(dataBytes)).map { x =>
           SignExt(axidata((1 << x) * 8 - 1, 0), dataBytes * 8)
-        })(io.in.mem.wWidth)
+        })(mem.wWidth)
       )
       when(io.axi.r.valid) {
         state := 0.U
-        io.stall := false.B
         wb.data := data
+      }
+    }
+    // Start memory access
+    is(4.U) {
+      when(mem.rw) {
+        io.axi.aw.valid := true.B
+        io.axi.aw.bits.addr := mem.addr
+        when(io.axi.aw.ready) {
+          state := 1.U
+        }
+        io.axi.w.valid := true.B
+        io.axi.w.bits.strb := strb << subaddr
+        io.axi.w.bits.data := mem.wdata << (subaddr * 8.U)
+        io.axi.w.bits.last := true.B
+        when(io.axi.w.ready) {
+          state := 2.U
+        }
+      }.otherwise {
+        io.axi.ar.valid := true.B
+        io.axi.ar.bits.addr := mem.addr
+        io.axi.ar.bits.len := 0.U
+        io.axi.ar.bits.size := mem.wWidth
+        io.axi.ar.bits.burst := 0.U
+        when(io.axi.ar.ready) {
+          state := 3.U
+        }
       }
     }
   }
