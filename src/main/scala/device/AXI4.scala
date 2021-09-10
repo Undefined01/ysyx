@@ -1,6 +1,7 @@
 package device
 
 import chisel3._
+import chisel3.experimental._
 import chisel3.util._
 
 trait AXI4Config {
@@ -32,7 +33,7 @@ class AXI4WBundle(implicit c: AXI4Config) extends Bundle {
 // Write response channel
 class AXI4BBundle(implicit c: AXI4Config) extends Bundle {
   val resp = UInt(2.W)
-  val id = Bool()
+  val id = UInt(4.W)
 }
 
 // Read address channel
@@ -60,63 +61,108 @@ class AXI4Bundle(implicit c: AXI4Config) extends Bundle {
   val r = Flipped(Decoupled(Output(new AXI4RBundle)))
 
   def default() = {
-    aw.valid := false.B
-    aw.bits := DontCare
-    w.valid := false.B
-    w.bits := DontCare
-    b.ready := false.B
-    ar.valid := false.B
-    ar.bits := DontCare
-    r.ready := false.B
+    if (
+      DataMirror.specifiedDirectionOf(this) == SpecifiedDirection.Unspecified
+    ) {
+      aw.valid := false.B
+      aw.bits := DontCare
+      w.valid := false.B
+      w.bits := DontCare
+      b.ready := false.B
+      ar.valid := false.B
+      ar.bits := DontCare
+      r.ready := false.B
+    } else {
+      aw.ready := false.B
+      w.ready := false.B
+      b.valid := false.B
+      b.bits := DontCare
+      ar.ready := false.B
+      r.valid := false.B
+      r.bits := DontCare
+    }
   }
-  def flippedDefault() = {
-    aw.ready := false.B
-    w.ready := false.B
-    b.valid := false.B
-    b.bits := DontCare
-    ar.ready := false.B
-    r.valid := false.B
-    r.bits := DontCare
-  }
 
-  def toFlattern() = {
-    val f = Wire(new AXI4Flatten)
+  def toFlattern(): Data = {
+    if (
+      DataMirror.specifiedDirectionOf(this) == SpecifiedDirection.Unspecified
+    ) {
+      val f = Wire(new AXI4Flatten)
 
-    aw.ready := f.awready
-    f.awvalid := aw.valid
-    f.awaddr := aw.bits.addr
-    f.awid := aw.bits.id
-    f.awlen := aw.bits.len
-    f.awsize := aw.bits.size
-    f.awburst := aw.bits.burst
+      aw.ready := f.awready
+      f.awvalid := aw.valid
+      f.awaddr := aw.bits.addr
+      f.awid := aw.bits.id
+      f.awlen := aw.bits.len
+      f.awsize := aw.bits.size
+      f.awburst := aw.bits.burst
 
-    w.ready := f.wready
-    f.wvalid := w.valid
-    f.wdata := w.bits.data
-    f.wstrb := w.bits.strb
-    f.wlast := w.bits.last
+      w.ready := f.wready
+      f.wvalid := w.valid
+      f.wdata := w.bits.data
+      f.wstrb := w.bits.strb
+      f.wlast := w.bits.last
 
-    b.valid := f.bvalid
-    f.bready := b.ready
-    b.bits.resp := f.bresp
-    b.bits.id := f.bid
+      b.valid := f.bvalid
+      f.bready := b.ready
+      b.bits.resp := f.bresp
+      b.bits.id := f.bid
 
-    ar.ready := f.arready
-    f.arvalid := ar.valid
-    f.araddr := ar.bits.addr
-    f.arid := ar.bits.id
-    f.arlen := ar.bits.len
-    f.arsize := ar.bits.size
-    f.arburst := ar.bits.burst
+      ar.ready := f.arready
+      f.arvalid := ar.valid
+      f.araddr := ar.bits.addr
+      f.arid := ar.bits.id
+      f.arlen := ar.bits.len
+      f.arsize := ar.bits.size
+      f.arburst := ar.bits.burst
 
-    f.rready := r.ready
-    r.valid := f.rvalid
-    r.bits.resp := f.rresp
-    r.bits.data := f.rdata
-    r.bits.last := f.rlast
-    r.bits.id := f.rid
+      f.rready := r.ready
+      r.valid := f.rvalid
+      r.bits.resp := f.rresp
+      r.bits.data := f.rdata
+      r.bits.last := f.rlast
+      r.bits.id := f.rid
 
-    f
+      f
+    } else {
+      val f = Wire(Flipped(new AXI4Flatten))
+
+      f.awready := aw.ready
+      aw.valid := f.awvalid
+      aw.bits.addr := f.awaddr
+      aw.bits.id := f.awid
+      aw.bits.len := f.awlen
+      aw.bits.size := f.awsize
+      aw.bits.burst := f.awburst
+
+      f.wready := w.ready
+      w.valid := f.wvalid
+      w.bits.data := f.wdata
+      w.bits.strb := f.wstrb
+      w.bits.last := f.wlast
+
+      f.bvalid := b.valid
+      b.ready := f.bready
+      f.bresp := b.bits.resp
+      f.bid := b.bits.id
+
+      f.arready := ar.ready
+      ar.valid := f.arvalid
+      ar.bits.addr := f.araddr
+      ar.bits.id := f.arid
+      ar.bits.len := f.arlen
+      ar.bits.size := f.arsize
+      ar.bits.burst := f.arburst
+
+      r.ready := f.rready
+      f.rvalid := r.valid
+      f.rresp := r.bits.resp
+      f.rdata := r.bits.data
+      f.rlast := r.bits.last
+      f.rid := r.bits.id
+
+      f
+    }
   }
 }
 
@@ -138,7 +184,7 @@ class AXI4Flatten(implicit c: AXI4Config) extends Bundle {
   val bready = Output(Bool())
   val bvalid = Input(Bool())
   val bresp = Input(UInt(2.W))
-  val bid = Input(Bool())
+  val bid = Input(UInt(4.W))
 
   val arready = Input(Bool())
   val arvalid = Output(Bool())

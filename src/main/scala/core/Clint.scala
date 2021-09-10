@@ -24,7 +24,7 @@ class Clint(implicit axi_config: AXI4Config) extends Module {
   mtime := mtime + 1.U
   val mtimecmp = RegInit(0.U(64.W))
 
-  io.axi.flippedDefault()
+  io.axi.default()
 
   val rState = RegInit(0.U(1.W))
   val rAddr = RegInit(0.U(32.W))

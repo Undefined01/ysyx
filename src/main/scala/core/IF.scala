@@ -24,19 +24,21 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     }
   })
 
+  val cacheWidth = 2
+
   val cache = Reg(UInt(c.XLEN.W))
-  val cacheIdx = Reg(UInt((c.XLEN - 3).W))
+  val cacheIdx = Reg(UInt((c.XLEN - cacheWidth).W))
 
   val next_pc = Mux(
     io.in.next_pc.valid,
     io.in.next_pc.bits,
     RegEnable(io.in.next_pc.bits, c.InitialPC.U, io.in.next_pc.valid)
   )
-  val pcIdx = next_pc(c.XLEN - 1, 3)
+  val pcIdx = next_pc(c.XLEN - 1, cacheWidth)
   val cacheMiss = cacheIdx =/= pcIdx
 
   val state = RegInit(0.U(2.W))
-  val pcFetchIdx = Reg(UInt((c.XLEN - 3).W))
+  val pcFetchIdx = Reg(UInt((c.XLEN - cacheWidth).W))
   io.axi.default()
   switch(state) {
     is(0.U) {
@@ -46,7 +48,7 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         io.axi.ar.bits.addr := next_pc
         io.axi.ar.bits.id := 0.U
         io.axi.ar.bits.len := 0.U
-        io.axi.ar.bits.size := 3.U
+        io.axi.ar.bits.size := 2.U
         io.axi.ar.bits.burst := 1.U
         pcFetchIdx := pcIdx
         when(io.axi.ar.ready) {
@@ -60,12 +62,20 @@ class IF(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         state := 0.U
         cacheIdx := pcFetchIdx
         cache := io.axi.r.bits.data
-        Debug("Cache loaded for %x: %x\n", Cat(pcFetchIdx, 0.U(3.W)), io.axi.r.bits.data)
+        Debug(
+          "Cache loaded for %x: %x\n",
+          Cat(pcFetchIdx, 0.U(cacheWidth.W)),
+          io.axi.r.bits.data
+        )
       }
     }
   }
 
-  io.out.valid := !io.flush && !RegEnable(cacheMiss, enable = !io.stall)
+  io.out.valid := !io.flush && !RegEnable(
+    cacheMiss,
+    init = true.B,
+    enable = !io.stall
+  )
   io.out.pc := RegEnable(next_pc, enable = !io.stall)
   io.out.instr := Mux(io.out.pc(2), cache(63, 32), cache(31, 0))
 }

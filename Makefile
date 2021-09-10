@@ -1,19 +1,19 @@
+help:
+	mill -i __.test.runMain TopMain --help
+
 test:
 	mill -i __.test
 
 verilog:
-	mill -i __.test.runMain top.TopMain -td ./build
-
-help:
-	mill -i __.test.runMain top.TopMain --help
+	mill -i __.test.runMain TopMain -td ./build
 
 emu: verilog
-	make -C difftest emu
+	make -C difftest emu EMU_TRACE=1
 
 difftest: emu
-	build/emu -b 0 -i ready_to_run/microbench.bin --diff ready_to_run/riscv64-nemu-interpreter-so
+	build/emu -b 0 -i ${IMG}
 
 clean:
-	-rm -rf $(BUILD_DIR)
+	-rm -rf build
 
 .PHONY: test verilog help emu clean

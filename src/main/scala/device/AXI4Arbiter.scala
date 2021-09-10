@@ -19,7 +19,7 @@ class AXI4Arbiter(implicit c: AXI4Config) extends Module {
   })
 
   val addrSpace = Seq(
-    (BigInt("80000000", 16), BigInt("9fffffff", 16)),
+    (BigInt("00000000", 16), BigInt("9fffffff", 16)),
     (BigInt("02000000", 16), BigInt("0200ffff", 16))
   )
   val addrSpaceStart = VecInit(addrSpace.map(_._1.U(c.AddrWidth.W)))
@@ -34,7 +34,7 @@ class AXI4Arbiter(implicit c: AXI4Config) extends Module {
     ).reduceTree(_ | _)
   }
 
-  io.masterPort.foreach(_.flippedDefault())
+  io.masterPort.foreach(_.default())
   io.slavePort.foreach(_.default())
 
   val out = Wire(new AXI4Bundle)

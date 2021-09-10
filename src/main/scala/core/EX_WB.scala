@@ -99,7 +99,7 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         io.axi.aw.bits.id := 0.U
         io.axi.aw.bits.addr := mem.addr
         io.axi.aw.bits.len := 0.U
-        io.axi.aw.bits.size := 3.U
+        io.axi.aw.bits.size := mem.wWidth
         io.axi.aw.bits.burst := 0.U
         when(io.axi.aw.ready) {
           state := 1.U

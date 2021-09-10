@@ -8,7 +8,9 @@ import utils.Logger._
 
 class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   Debug("-----------------------------------\n")
-  val io = IO(new Bundle {})
+  val io = IO(new Bundle {
+    val axi = new AXI4Bundle
+  })
 
   val regs = Module(new RegFile)
 
@@ -22,7 +24,7 @@ class RvCore(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
   val clint = Module(new Clint)
 
   val axi_arbiter = Module(new AXI4Arbiter)
-  AXI4RAM(clock, reset, axi_arbiter.io.slavePort(0))
+  axi_arbiter.io.slavePort(0) <> io.axi
   axi_arbiter.io.slavePort(1) <> clint.io.axi
 
   val stall = Wire(Bool())
