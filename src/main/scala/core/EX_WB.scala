@@ -96,7 +96,11 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
     is(4.U) {
       when(mem.rw) {
         io.axi.aw.valid := true.B
+        io.axi.aw.bits.id := 0.U
         io.axi.aw.bits.addr := mem.addr
+        io.axi.aw.bits.len := 0.U
+        io.axi.aw.bits.size := 3.U
+        io.axi.aw.bits.burst := 0.U
         when(io.axi.aw.ready) {
           state := 1.U
         }
@@ -109,6 +113,7 @@ class EX_WB(implicit c: CoreConfig, axi_config: AXI4Config) extends Module {
         }
       }.otherwise {
         io.axi.ar.valid := true.B
+        io.axi.ar.bits.id := 0.U
         io.axi.ar.bits.addr := mem.addr
         io.axi.ar.bits.len := 0.U
         io.axi.ar.bits.size := mem.wWidth
