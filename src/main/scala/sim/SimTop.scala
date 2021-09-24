@@ -21,7 +21,11 @@ class SimTop extends Module {
     )
   )
 
-  AXI4RAM(clock, reset, rvcore.io.axi)
+  val axi = Wire(chiselTypeOf(rvcore.io.axi))
+  axi <> rvcore.io.axi
+  axi.ar.bits.addr := rvcore.io.axi.ar.bits.addr - "h80000000".U
+  axi.aw.bits.addr := rvcore.io.axi.aw.bits.addr - "h80000000".U
+  AXI4RAM(clock, reset, axi)
 
   io.uart.in.valid := false.B
   io.uart.out.valid := false.B
