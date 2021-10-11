@@ -25,7 +25,7 @@ class MemIO(implicit c: CoreConfig) extends Bundle {
   val rw = Bool()
   val unsigned = Bool()
   val wWidth = UInt(3.W)
-  val addr = UInt(c.XLEN.W)
+  val addr = UInt(32.W)
   val wdata = UInt(c.XLEN.W)
 
   def set_valid(valid: Bool) = {

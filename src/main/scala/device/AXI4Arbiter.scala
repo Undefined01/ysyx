@@ -7,8 +7,8 @@ import scala.reflect.runtime.universe._
 import scala.reflect.ClassTag
 
 class TransInfoBundle extends Bundle {
-  var src = Input(UInt(2.W))
-  var dst = Input(UInt(2.W))
+  var src = Input(UInt(1.W))
+  var dst = Input(UInt(1.W))
 }
 
 class AXI4Arbiter(implicit c: AXI4Config) extends Module {

@@ -82,7 +82,7 @@ object Csr {
     val number = CsrNumber.mstatus
 
     val out = WireInit(wpri.asTypeOf(new StatusBundle))
-    out.sd := out.fs.orR || out.xs.orR
+    out.sd := out.fs =/= 0.U || out.xs =/= 0.U
     io.value := out.asUInt
     when(io.wen) {
       reg := io.wdata
